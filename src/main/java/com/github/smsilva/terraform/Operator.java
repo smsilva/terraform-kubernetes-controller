@@ -25,17 +25,18 @@ public class Operator {
     private static void namespaceExample() throws IOException, ApiException {
         ApiClient apiClient = ClientBuilder.standard().build();
 
-        // retrieving the latest state of the default namespace
         DynamicKubernetesApi dynamicApi = new DynamicKubernetesApi("", "v1", "namespaces", apiClient);
+
         DynamicKubernetesObject defaultNamespace =
                 dynamicApi.get("default").throwsApiException().getObject();
 
-        // attaching a "foo=bar" label to the default namespace
         defaultNamespace.setMetadata(defaultNamespace.getMetadata().putLabelsItem("foo", "bar"));
+
         DynamicKubernetesObject updatedDefaultNamespace =
                 dynamicApi.update(defaultNamespace).throwsApiException().getObject();
 
         logger.info("Namespace: {}", defaultNamespace.getMetadata().getName());
+
         apiClient.getHttpClient().connectionPool().evictAll();
     }
 

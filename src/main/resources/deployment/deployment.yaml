@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terraform-operator
+  labels:
+    app: terraform-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: terraform-operator
+  template:
+    metadata:
+      labels:
+        app: terraform-operator
+    spec:
+      serviceAccountName: terraform-operator
+      containers:
+        - name: operator
+          image: silviosilva/terraform-operator:latest
