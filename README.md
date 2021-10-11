@@ -1,2 +1,4 @@
-# terraform-operator
-Terraform Operator
+# Terraform Kubernetes Custom Controller
+```bash
+terraform-kubernetes-controller
+```
