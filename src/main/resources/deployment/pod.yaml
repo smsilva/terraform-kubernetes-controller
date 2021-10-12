@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: terraform-operator
+  labels:
+    app: terraform-operator
+spec:
+  serviceAccountName: terraform-operator
+  containers:
+    - name: operator
+      image: silviosilva/terraform-operator:latest
+  restartPolicy: Never

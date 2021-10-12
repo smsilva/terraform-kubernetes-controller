@@ -1,62 +1,86 @@
 package com.github.smsilva.terraform;
 
-import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.util.ClientBuilder;
-import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesApi;
-import io.kubernetes.client.util.generic.dynamic.DynamicKubernetesObject;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.UUID;
+import io.kubernetes.client.informer.ResourceEventHandler;
+import io.kubernetes.client.informer.SharedIndexInformer;
+import io.kubernetes.client.informer.SharedInformerFactory;
+import io.kubernetes.client.informer.cache.Lister;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.*;
+import io.kubernetes.client.util.CallGeneratorParams;
+import okhttp3.OkHttpClient;
+
+import java.util.concurrent.TimeUnit;
 
 public class Operator {
 
-    private static final Logger logger = LoggerFactory.getLogger(Operator.class);
+    public static void main(String[] args) throws Exception {
+        CoreV1Api coreV1Api = new CoreV1Api();
+        ApiClient apiClient = coreV1Api.getApiClient();
 
-    public static void main(String[] args) throws IOException, ApiException {
-        namespaceExample();
-        stackExample();
-    }
+        OkHttpClient httpClient = apiClient
+            .getHttpClient()
+            .newBuilder()
+            .readTimeout(0, TimeUnit.SECONDS)
+            .build();
 
-    @NotNull
-    private static void namespaceExample() throws IOException, ApiException {
-        ApiClient apiClient = ClientBuilder.standard().build();
+        apiClient.setHttpClient(httpClient);
 
-        DynamicKubernetesApi dynamicApi = new DynamicKubernetesApi("", "v1", "namespaces", apiClient);
+        SharedInformerFactory factory = new SharedInformerFactory();
 
-        DynamicKubernetesObject defaultNamespace =
-                dynamicApi.get("default").throwsApiException().getObject();
+        SharedIndexInformer<V1Pod> podInformer =
+                factory.sharedIndexInformerFor(
+                        (CallGeneratorParams params) -> {
+                            return coreV1Api.listNamespacedPodCall(
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    0,
+                                    params.resourceVersion,
+                                    null,
+                                    params.timeoutSeconds,
+                                    params.watch,
+                                    null);
+                        },
+                        V1Pod.class,
+                        V1PodList.class);
 
-        defaultNamespace.setMetadata(defaultNamespace.getMetadata().putLabelsItem("foo", "bar"));
+        podInformer.addEventHandler(
+                new ResourceEventHandler<V1Pod>() {
+                    @Override
+                    public void onAdd(V1Pod v1Pod) {
+                        System.out.println("onAdd");
+                    }
 
-        DynamicKubernetesObject updatedDefaultNamespace =
-                dynamicApi.update(defaultNamespace).throwsApiException().getObject();
+                    @Override
+                    public void onUpdate(V1Pod v1Pod, V1Pod apiType1) {
+                        System.out.println("onUpdate");
+                    }
 
-        logger.info("Namespace: {}", defaultNamespace.getMetadata().getName());
+                    @Override
+                    public void onDelete(V1Pod v1Pod, boolean b) {
+                        System.out.println("onDelete");
+                    }
+                });
 
-        apiClient.getHttpClient().connectionPool().evictAll();
-    }
+        factory.startAllRegisteredInformers();
 
-    @NotNull
-    private static void stackExample() throws IOException, ApiException {
-        ApiClient apiClient = ClientBuilder.standard().build();
-
-        DynamicKubernetesApi dynamicApi = new DynamicKubernetesApi("poc.silvios.me", "v1alpha", "stacks", apiClient);
-
-        DynamicKubernetesObject stackDummyInstance =
-                dynamicApi.get("default", "dummy").throwsApiException().getObject();
-
-        UUID uuid = UUID.randomUUID();
-
-        stackDummyInstance.setMetadata(stackDummyInstance.getMetadata().putLabelsItem("foo", uuid.toString()));
-
-        dynamicApi.update(stackDummyInstance).throwsApiException();
-
-        logger.info("Stack [{}]: {}", uuid.toString(), stackDummyInstance.getMetadata().getName());
-
-        apiClient.getHttpClient().connectionPool().evictAll();
+//        V1Node nodeToCreate = new V1Node();
+//        V1ObjectMeta metadata = new V1ObjectMeta();
+//        metadata.setName("noxu");
+//        nodeToCreate.setMetadata(metadata);
+//        V1Node createdNode = coreV1Api.createNode(nodeToCreate, null, null, null);
+//        Thread.sleep(3000);
+//
+//        Lister<V1Node> nodeLister = new Lister<V1Node>(nodeInformer.getIndexer());
+//        V1Node node = nodeLister.get("noxu");
+//        System.out.printf("noxu created! %s\n", node.getMetadata().getCreationTimestamp());
+//        factory.stopAllRegisteredInformers();
+//        Thread.sleep(3000);
+//        System.out.println("informer stopped..");
     }
 }
