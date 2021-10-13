@@ -9,11 +9,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 public class PlatformInstanceStatus {
 
     private Boolean ready;
-    private String message;
 
     public PlatformInstanceStatus() {
         this.ready = false;
-        this.message = "";
     }
 
     public Boolean getReady() {
@@ -24,12 +22,11 @@ public class PlatformInstanceStatus {
         this.ready = ready;
     }
 
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
+    @Override
+    public String toString() {
+        return "PlatformInstanceStatus{" +
+                "ready=" + ready +
+                '}';
     }
 
 }

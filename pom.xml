@@ -55,7 +55,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.smsilva.platform.terraform.controller.Informer</mainClass>
+                            <mainClass>com.github.smsilva.platform.terraform.controller.Operator</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

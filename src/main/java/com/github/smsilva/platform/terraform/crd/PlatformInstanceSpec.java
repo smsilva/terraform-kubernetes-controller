@@ -15,7 +15,7 @@ public class PlatformInstanceSpec implements KubernetesResource {
     @Override
     public String toString() {
         return "PlatformInstanceSpec{" +
-                "region='" + region + '\'' +
+                "region='" + region + '\'' + "," +
                 "provider='" + provider + '\'' +
                 '}';
     }

@@ -1,23 +1,22 @@
 package com.github.smsilva.platform.terraform.controller;
 
 import com.github.smsilva.platform.terraform.crd.PlatformInstance;
-import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.Resource;
-import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-public class Informer {
+public class Operator {
 
-    private static final Logger logger = LoggerFactory.getLogger(Informer.class);
+    private static final Logger logger = LoggerFactory.getLogger(Operator.class);
 
     public static void main(String[] args) throws Exception {
         try (KubernetesClient client = new DefaultKubernetesClient()) {
@@ -35,17 +34,14 @@ public class Informer {
 
                 @Override
                 public void onUpdate(PlatformInstance oldResource, PlatformInstance newResource) {
-                    if (!oldResource.getMetadata().getResourceVersion().equals(newResource.getMetadata().getResourceVersion())) {
-                        logger.info("UPDATE {} - {}/{}",
-                                oldResource.getMetadata().getSelfLink(),
-                                oldResource.getMetadata().getResourceVersion(),
-                                newResource.getMetadata().getResourceVersion());
+                    if (theyAreDifferent(oldResource, newResource)) {
+                        onUpdatePlatformInstance(oldResource, newResource);
                     }
                 }
 
                 @Override
-                public void onDelete(PlatformInstance resource, boolean b) {
-                    logger.info("DELETE {}", resource.getMetadata().getSelfLink());
+                public void onDelete(PlatformInstance platformInstance, boolean b) {
+                    onDeletePlatformInstance(platformInstance, client);
                 }
             });
 
@@ -60,24 +56,42 @@ public class Informer {
 
     private static void onAddPlatformInstance(PlatformInstance platformInstance, KubernetesClient client) {
         logger.info("ADD {}", platformInstance.getMetadata().getSelfLink());
-
-        String platformInstanceName = platformInstance.getMetadata().getName();
+        logger.info("    {}", platformInstance);
 
         Resource<ConfigMap> configMapResource = client
                 .configMaps()
                 .inNamespace(platformInstance.getMetadata().getNamespace())
-                .withName(platformInstanceName);
+                .withName(platformInstance.getMetadata().getName());
 
         ConfigMap configMap = configMapResource.createOrReplace(new ConfigMapBuilder().
-                withNewMetadata().withName(platformInstanceName).endMetadata().
-                addToData("foo", UUID.randomUUID().toString()).
-                addToData("bar", "beer").
+                withNewMetadata().withName(platformInstance.getMetadata().getName()).endMetadata().
                 build());
 
         logger.info("Upserted ConfigMap at {} data {}", configMap.getMetadata().getSelfLink(), configMap.getData());
+    }
 
-        platformInstance.getStatus().setMessage("Updated status message");
-        platformInstance.getStatus().setReady(true);
+    private static boolean theyAreDifferent(PlatformInstance oldResource, PlatformInstance newResource) {
+        return !oldResource.getMetadata().getResourceVersion().equals(newResource.getMetadata().getResourceVersion());
+    }
+
+    private static void onUpdatePlatformInstance(PlatformInstance oldResource, PlatformInstance newResource) {
+        logger.info("UPDATE {} - {}/{}",
+                oldResource.getMetadata().getSelfLink(),
+                oldResource.getMetadata().getResourceVersion(),
+                newResource.getMetadata().getResourceVersion());
+    }
+
+    private static void onDeletePlatformInstance(PlatformInstance platformInstance, KubernetesClient client) {
+        logger.info("DELETE {}", platformInstance.getMetadata().getSelfLink());
+
+        Resource<ConfigMap> configMapResource = client
+                .configMaps()
+                .inNamespace(platformInstance.getMetadata().getNamespace())
+                .withName(platformInstance.getMetadata().getName());
+
+        Boolean deleted = configMapResource.delete();
+
+        logger.info("ConfigMap {} exclusion : {}", platformInstance.getMetadata().getName(), deleted);
     }
 
 }
