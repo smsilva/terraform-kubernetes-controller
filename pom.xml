@@ -55,7 +55,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.smsilva.k8s.dummy.Informer</mainClass>
+                            <mainClass>com.github.smsilva.platform.terraform.controller.Informer</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

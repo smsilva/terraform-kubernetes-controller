@@ -1,4 +1,4 @@
-package com.github.smsilva.k8s.dummy;
+package com.github.smsilva.platform.terraform.controller;
 
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
@@ -22,9 +22,9 @@ public class Informer {
             SharedInformerFactory informerFactory = client.informers();
 
             CustomResourceDefinitionContext context = new CustomResourceDefinitionContext.Builder()
-                    .withGroup("demo.fabric8.io")
+                    .withGroup("silvios.me")
                     .withVersion("v1")
-                    .withPlural("dummies")
+                    .withPlural("platforminstances")
                     .withScope("Namespaced")
                     .build();
 

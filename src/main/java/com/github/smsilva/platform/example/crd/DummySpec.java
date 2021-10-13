@@ -1,4 +1,4 @@
-package com.github.smsilva.k8s.dummy;
+package com.github.smsilva.platform.example.crd;
 
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
