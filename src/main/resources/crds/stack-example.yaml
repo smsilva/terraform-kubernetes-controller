@@ -1,6 +1,0 @@
-apiVersion: poc.silvios.me/v1alpha
-kind: Stack
-metadata:
-  name: dummy
-spec:
-  image: silviosilva/azure-dummy-stack:latest
