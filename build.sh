@@ -1,7 +1,9 @@
 #!/bin/bash
 mvn clean package
-docker build --rm -t silviosilva/terraform-operator:latest .
-docker push silviosilva/terraform-operator:latest
+
+docker build --rm -t silviosilva/terraform-kubernetes-controller:latest .
+
+docker push silviosilva/terraform-kubernetes-controller:latest
 
 kubectl delete -f src/main/resources/deployment/pod.yaml &> /dev/null
 

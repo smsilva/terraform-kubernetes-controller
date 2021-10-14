@@ -1,20 +1,9 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-<<<<<<< HEAD:src/main/resources/crds/example/definition.yaml
   name: dummies.demo.fabric8.io
 spec:
   group: demo.fabric8.io
-=======
-  name: stacks.poc.silvios.me
-spec:
-  group: poc.silvios.me
-  names:
-    kind: Stack
-    listKind: StackList
-    plural: stacks
-    singular: stack
->>>>>>> wip:src/main/resources/crds/stack-example.yaml
   scope: Namespaced
   names:
     kind: Dummy
@@ -33,7 +22,6 @@ spec:
             spec:
               type: object
               properties:
-<<<<<<< HEAD:src/main/resources/crds/example/definition.yaml
                 foo:
                   type: string
                 bar:
@@ -45,7 +33,3 @@ spec:
                   type: string
       subresources:
         status: {}
-=======
-                image:
-                  type: string
->>>>>>> wip:src/main/resources/crds/stack-example.yaml
