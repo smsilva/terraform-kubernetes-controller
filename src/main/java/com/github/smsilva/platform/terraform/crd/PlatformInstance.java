@@ -12,10 +12,6 @@ public class PlatformInstance extends CustomResource<PlatformInstanceSpec, Platf
     public static final String GROUP = "silvios.me";
     public static final String VERSION = "v1";
 
-    public PlatformInstance() {
-        this.status = new PlatformInstanceStatus();
-    }
-
     @Override
     public String toString() {
         return "PlatformInstance{" +

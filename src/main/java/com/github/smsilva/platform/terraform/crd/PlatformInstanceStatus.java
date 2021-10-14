@@ -1,11 +1,5 @@
 package com.github.smsilva.platform.terraform.crd;
 
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-
-@JsonDeserialize(
-        using = JsonDeserializer.None.class
-)
 public class PlatformInstanceStatus {
 
     private Boolean ready;

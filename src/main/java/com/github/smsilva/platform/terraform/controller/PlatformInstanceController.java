@@ -1,12 +1,17 @@
 package com.github.smsilva.platform.terraform.controller;
 
 import com.github.smsilva.platform.terraform.crd.PlatformInstance;
+import com.github.smsilva.platform.terraform.crd.PlatformInstanceList;
+import com.github.smsilva.platform.terraform.crd.PlatformInstanceStatus;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
@@ -16,10 +21,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-public class Operator {
+public class PlatformInstanceController {
 
     public static final String LABEL_PLATFORM_INSTANCE_NAME = "platform-instance-name";
-    private static final Logger logger = LoggerFactory.getLogger(Operator.class);
+    private static final Logger logger = LoggerFactory.getLogger(PlatformInstanceController.class);
 
     public static void main(String[] args) throws Exception {
         try (KubernetesClient client = new DefaultKubernetesClient()) {
@@ -80,31 +85,31 @@ public class Operator {
 
         EnvFromSource envFromSourceSecret = new EnvFromSourceBuilder()
                 .withNewSecretRef()
-                .withName("arm-credentials")
+                .withName(platformInstance.getSpec().getProvider() + "-credentials")
                 .endSecretRef()
                 .build();
 
         final Job job = new JobBuilder()
-                .withApiVersion("batch/v1")
-                .withNewMetadata()
+            .withApiVersion("batch/v1")
+            .withNewMetadata()
                 .withName(jobName)
                 .withLabels(Collections.singletonMap(LABEL_PLATFORM_INSTANCE_NAME, platformInstance.getMetadata().getName()))
-                .withAnnotations(Collections.singletonMap("annotation1", "some-very-long-annotation"))
-                .endMetadata()
-                .withNewSpec()
+                .withAnnotations(Collections.singletonMap(LABEL_PLATFORM_INSTANCE_NAME, platformInstance.getMetadata().getName()))
+            .endMetadata()
+            .withNewSpec()
                 .withNewTemplate()
-                .withNewSpec()
-                .addNewContainer()
-                .withName("plan")
-                .withImage(image)
-                .withArgs("apply", "-auto-approve")
-                .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
-                .endContainer()
-                .withRestartPolicy("Never")
-                .endSpec()
+                    .withNewSpec()
+                        .addNewContainer()
+                            .withName("apply")
+                            .withImage(image)
+                            .withArgs("apply", "-auto-approve")
+                            .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                        .endContainer()
+                        .withRestartPolicy("Never")
+                    .endSpec()
                 .endTemplate()
-                .endSpec()
-                .build();
+            .endSpec()
+            .build();
 
         logger.info("Creating job {}", jobName);
 
@@ -126,6 +131,15 @@ public class Operator {
         String joblog = client.batch().v1().jobs().inNamespace(namespace).withName(jobName).getLog();
 
         logger.info(joblog);
+
+        PlatformInstanceStatus platformInstanceStatus = new PlatformInstanceStatus();
+        platformInstanceStatus.setReady(true);
+        platformInstance.setStatus(platformInstanceStatus);
+
+        MixedOperation<PlatformInstance, PlatformInstanceList, Resource<PlatformInstance>> resources = client.resources(PlatformInstance.class, PlatformInstanceList.class);
+
+        resources.createOrReplace(platformInstance);
+
         logger.info("Done");
     }
 
@@ -151,6 +165,8 @@ public class Operator {
                 oldResource.getMetadata().getSelfLink(),
                 oldResource.getMetadata().getResourceVersion(),
                 newResource.getMetadata().getResourceVersion());
+        logger.info("    [{}] {}", oldResource.getMetadata().getResourceVersion(), oldResource);
+        logger.info("    [{}] {}", newResource.getMetadata().getResourceVersion(), newResource);
     }
 
     private static void onDeletePlatformInstance(PlatformInstance platformInstance, KubernetesClient client) {

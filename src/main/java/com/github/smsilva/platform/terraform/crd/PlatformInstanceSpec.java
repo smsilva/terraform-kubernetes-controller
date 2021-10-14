@@ -1,24 +1,9 @@
 package com.github.smsilva.platform.terraform.crd;
 
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import io.fabric8.kubernetes.api.model.KubernetesResource;
-
-@JsonDeserialize(
-        using = JsonDeserializer.None.class
-)
-public class PlatformInstanceSpec implements KubernetesResource {
+public class PlatformInstanceSpec {
 
     private String region;
     private String provider;
-
-    @Override
-    public String toString() {
-        return "PlatformInstanceSpec{" +
-                "region='" + region + '\'' + "," +
-                "provider='" + provider + '\'' +
-                '}';
-    }
 
     public String getRegion() {
         return region;
@@ -34,6 +19,14 @@ public class PlatformInstanceSpec implements KubernetesResource {
 
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+
+    @Override
+    public String toString() {
+        return "PlatformInstanceSpec{" +
+                "region='" + region + '\'' + "," +
+                "provider='" + provider + '\'' +
+                '}';
     }
 
 }
