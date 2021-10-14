@@ -1,8 +1,9 @@
 package com.github.smsilva.platform.terraform.controller;
 
 import com.github.smsilva.platform.terraform.crd.PlatformInstance;
-import io.fabric8.kubernetes.api.model.ConfigMap;
-import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
+import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.batch.v1.Job;
+import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.Resource;
@@ -12,10 +13,12 @@ import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 public class Operator {
 
+    public static final String LABEL_PLATFORM_INSTANCE_NAME = "platform-instance-name";
     private static final Logger logger = LoggerFactory.getLogger(Operator.class);
 
     public static void main(String[] args) throws Exception {
@@ -58,16 +61,85 @@ public class Operator {
         logger.info("ADD {}", platformInstance.getMetadata().getSelfLink());
         logger.info("    {}", platformInstance);
 
+        ConfigMap configMap = createConfigMap(platformInstance, client);
+        logger.info("Upserted ConfigMap at {} data {}", configMap.getMetadata().getSelfLink(), configMap.getData());
+
+        createJob(platformInstance, client, configMap);
+    }
+
+    private static void createJob(PlatformInstance platformInstance, KubernetesClient client, ConfigMap configMap) {
+        String image = "silviosilva/" + platformInstance.getSpec().getProvider() + "-dummy-stack:latest";
+        String jobName = platformInstance.getMetadata().getName();
+        String namespace = platformInstance.getMetadata().getNamespace();
+
+        EnvFromSource envFromSourceConfigMap = new EnvFromSourceBuilder()
+                .withNewConfigMapRef()
+                .withName(configMap.getMetadata().getName())
+                .endConfigMapRef()
+                .build();
+
+        EnvFromSource envFromSourceSecret = new EnvFromSourceBuilder()
+                .withNewSecretRef()
+                .withName("arm-credentials")
+                .endSecretRef()
+                .build();
+
+        final Job job = new JobBuilder()
+                .withApiVersion("batch/v1")
+                .withNewMetadata()
+                .withName(jobName)
+                .withLabels(Collections.singletonMap(LABEL_PLATFORM_INSTANCE_NAME, platformInstance.getMetadata().getName()))
+                .withAnnotations(Collections.singletonMap("annotation1", "some-very-long-annotation"))
+                .endMetadata()
+                .withNewSpec()
+                .withNewTemplate()
+                .withNewSpec()
+                .addNewContainer()
+                .withName("plan")
+                .withImage(image)
+                .withArgs("apply", "-auto-approve")
+                .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                .endContainer()
+                .withRestartPolicy("Never")
+                .endSpec()
+                .endTemplate()
+                .endSpec()
+                .build();
+
+        logger.info("Creating job {}", jobName);
+
+        client.batch().v1().jobs().inNamespace(namespace).createOrReplace(job);
+
+        logger.info("Getting POD List from job: {}", job.getMetadata().getName());
+
+        PodList podList = client.pods()
+                .inNamespace(namespace)
+                .withLabel("job-name", job.getMetadata().getName()).list();
+
+        logger.info("Waiting for Succeeded execution: {}", job.getMetadata().getName());
+
+        client.pods()
+                .inNamespace(namespace)
+                .withName(podList.getItems().get(0).getMetadata().getName())
+                .waitUntilCondition(pod -> pod.getStatus().getPhase().equals("Succeeded"), 1, TimeUnit.MINUTES);
+
+        String joblog = client.batch().v1().jobs().inNamespace(namespace).withName(jobName).getLog();
+
+        logger.info(joblog);
+        logger.info("Done");
+    }
+
+    private static ConfigMap createConfigMap(PlatformInstance platformInstance, KubernetesClient client) {
         Resource<ConfigMap> configMapResource = client
                 .configMaps()
                 .inNamespace(platformInstance.getMetadata().getNamespace())
                 .withName(platformInstance.getMetadata().getName());
 
-        ConfigMap configMap = configMapResource.createOrReplace(new ConfigMapBuilder().
+        return configMapResource.createOrReplace(new ConfigMapBuilder().
                 withNewMetadata().withName(platformInstance.getMetadata().getName()).endMetadata().
+                addToData("STACK_INSTANCE_NAME", platformInstance.getMetadata().getName()).
+                addToData("DEBUG", "0").
                 build());
-
-        logger.info("Upserted ConfigMap at {} data {}", configMap.getMetadata().getSelfLink(), configMap.getData());
     }
 
     private static boolean theyAreDifferent(PlatformInstance oldResource, PlatformInstance newResource) {
@@ -84,14 +156,32 @@ public class Operator {
     private static void onDeletePlatformInstance(PlatformInstance platformInstance, KubernetesClient client) {
         logger.info("DELETE {}", platformInstance.getMetadata().getSelfLink());
 
-        Resource<ConfigMap> configMapResource = client
+        String namespace = platformInstance.getMetadata().getNamespace();
+        String instanceName = platformInstance.getMetadata().getName();
+
+        Boolean jobDeleted = deleteJob(client, instanceName, namespace);
+        logger.info("Job {} exclusion : {}", instanceName, jobDeleted);
+
+        Boolean configMapDeleted = deleteConfigMap(client, instanceName, namespace);
+        logger.info("ConfigMap {} exclusion : {}", platformInstance.getMetadata().getName(), configMapDeleted);
+    }
+
+    private static Boolean deleteConfigMap(KubernetesClient client, String instanceName, String namespace) {
+        return client
                 .configMaps()
-                .inNamespace(platformInstance.getMetadata().getNamespace())
-                .withName(platformInstance.getMetadata().getName());
+                .inNamespace(namespace)
+                .withName(instanceName)
+                .delete();
+    }
 
-        Boolean deleted = configMapResource.delete();
-
-        logger.info("ConfigMap {} exclusion : {}", platformInstance.getMetadata().getName(), deleted);
+    private static Boolean deleteJob(KubernetesClient client, String instanceName, String namespace) {
+        return client
+                .batch()
+                .v1()
+                .jobs()
+                .inNamespace(namespace)
+                .withName(instanceName)
+                .delete();
     }
 
 }
