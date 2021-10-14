@@ -1,4 +1,4 @@
-package com.github.smsilva.platform.example.controller;
+package com.github.smsilva.platform.controller;
 
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
-public class Informer {
+public class DummyController {
 
-    private static final Logger logger = LoggerFactory.getLogger(Informer.class);
+    private static final Logger logger = LoggerFactory.getLogger(DummyController.class);
 
     public static void main(String[] args) throws Exception {
         try (KubernetesClient client = new DefaultKubernetesClient()) {

@@ -1,4 +1,4 @@
-package com.github.smsilva.platform.example.crd;
+package com.github.smsilva.platform.model.v1;
 
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

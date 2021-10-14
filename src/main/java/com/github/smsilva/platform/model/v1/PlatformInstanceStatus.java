@@ -1,4 +1,4 @@
-package com.github.smsilva.platform.terraform.crd;
+package com.github.smsilva.platform.model.v1;
 
 public class PlatformInstanceStatus {
 

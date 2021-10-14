@@ -14,19 +14,3 @@ metadata:
 spec:
   foo: foofoo
   bar: foo
----
-apiVersion: demo.fabric8.io/v1
-kind: Dummy
-metadata:
-  name: d3
-spec:
-  foo: bar
-  bar: blur
----
-apiVersion: demo.fabric8.io/v1
-kind: Dummy
-metadata:
-  name: d4
-spec:
-  foo: var
-  bar: nope

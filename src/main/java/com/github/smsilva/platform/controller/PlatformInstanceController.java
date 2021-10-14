@@ -1,17 +1,15 @@
-package com.github.smsilva.platform.terraform.controller;
+package com.github.smsilva.platform.controller;
 
-import com.github.smsilva.platform.terraform.crd.PlatformInstance;
-import com.github.smsilva.platform.terraform.crd.PlatformInstanceList;
-import com.github.smsilva.platform.terraform.crd.PlatformInstanceStatus;
+import com.github.smsilva.platform.model.v1.PlatformInstance;
+import com.github.smsilva.platform.model.v1.PlatformInstanceList;
+import com.github.smsilva.platform.model.v1.PlatformInstanceStatus;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
-import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;

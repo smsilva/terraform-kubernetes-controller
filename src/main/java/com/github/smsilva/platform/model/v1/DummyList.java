@@ -1,4 +1,4 @@
-package com.github.smsilva.platform.example.crd;
+package com.github.smsilva.platform.model.v1;
 
 import io.fabric8.kubernetes.client.CustomResourceList;
 
