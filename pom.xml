@@ -55,7 +55,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.smsilva.platform.controller.PlatformInstanceController</mainClass>
+                            <mainClass>com.github.smsilva.platform.controller.StackInstanceController</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

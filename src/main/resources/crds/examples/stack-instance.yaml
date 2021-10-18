@@ -1,0 +1,15 @@
+apiVersion: terraform.silvios.me/v1
+kind: StackInstance
+metadata:
+  name: wasp-blue
+spec:
+  stack:
+    provider: azure
+    registry: docker.io/silviosilva
+    image: example
+    version: 0.1.0
+  vars:
+    region: eastus2
+  outputs:
+    - name
+    - id
