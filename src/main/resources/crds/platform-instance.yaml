@@ -33,17 +33,21 @@ spec:
               properties:
                 ready:
                   type: string
+
       subresources:
         status: {}
+
       additionalPrinterColumns:
         - jsonPath: .spec.region
           description: Platform instance's region
           name: Region
           type: string
+
         - jsonPath: .spec.provider
           description: Platform Provider
           name: Provider
           type: string
+
         - jsonPath: .status.ready
           description: Platform Instance Status
           name: Status

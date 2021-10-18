@@ -5,6 +5,7 @@ clear && \
 kubectl explain StackInstance.spec && \
 kubectl delete StackInstance --all && \
 echo "" && \
-kubectl apply -f src/main/resources/crds/examples/stack-instance.yaml && \
+kubectl apply -f src/main/resources/examples/stack-instance.yaml && \
 echo "" && \
-kubectl get StackInstance wasp-blue -o yaml | kubectl neat
+kubectl get StackInstance africa-1 -o yaml | kubectl neat
+kubectl get StackInstances

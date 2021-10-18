@@ -17,4 +17,4 @@ spec:
       serviceAccountName: terraform-controller
       containers:
         - name: controller
-          image: silviosilva/terraform-kubernetes-controller:latest
+          image: docker.io/silviosilva/terraform-kubernetes-controller:latest

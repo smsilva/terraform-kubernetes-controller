@@ -138,15 +138,18 @@ public class StackInstanceController {
         logger.info(joblog);
     }
 
-    private static ConfigMap createConfigMap(StackInstance StackInstance, KubernetesClient client) {
+    private static ConfigMap createConfigMap(StackInstance stackInstance, KubernetesClient client) {
         Resource<ConfigMap> configMapResource = client
                 .configMaps()
-                .inNamespace(StackInstance.getMetadata().getNamespace())
-                .withName(StackInstance.getMetadata().getName());
+                .inNamespace(stackInstance.getMetadata().getNamespace())
+                .withName(stackInstance.getMetadata().getName());
 
-        return configMapResource.createOrReplace(new ConfigMapBuilder().
-                withNewMetadata().withName(StackInstance.getMetadata().getName()).endMetadata().
-                addToData("STACK_INSTANCE_NAME", StackInstance.getMetadata().getName()).
+        String region = stackInstance.getSpec().getVars().get("region");
+
+        return configMapResource.createOrReplace(new ConfigMapBuilder()
+                .withNewMetadata().withName(stackInstance.getName()).endMetadata().
+                addToData("TF_VAR_region", region). // Will change here to pass all variables
+                addToData("STACK_INSTANCE_NAME", stackInstance.getName()).
                 addToData("DEBUG", "0").
                 build());
     }
