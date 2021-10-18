@@ -1,0 +1,27 @@
+#!/bin/bash
+mvn clean package
+
+CONTROLLER_IMAGE_NAME="silviosilva/terraform-kubernetes-controller"
+CONTROLLER_VERSION=$(grep "version:" cz.yaml | awk '{ print $2 }' | tr -d " ")
+
+CONTROLLER_IMAGE="${CONTROLLER_IMAGE_NAME?}:${CONTROLLER_VERSION?}"
+CONTROLLER_IMAGE_LATEST="${CONTROLLER_IMAGE_NAME?}:latest"
+
+docker build \
+  --rm \
+  --tag "${CONTROLLER_IMAGE?}" \
+  --tag "${CONTROLLER_IMAGE_LATEST?}" .
+
+docker push "${CONTROLLER_IMAGE?}"
+docker push "${CONTROLLER_IMAGE_LATEST?}"
+
+# Remove Controller Resources if it already exists
+kubectl delete -f src/main/resources/deployment/terraform-controller &> /dev/null
+
+# Deploy the Controller
+kubectl apply -f src/main/resources/deployment/terraform-controller
+
+# Wait some seconds to start to follow the logs
+kubectl wait deploy terraform-controller \
+  --for condition=Available \
+  --timeout 320s

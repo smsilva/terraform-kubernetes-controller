@@ -5,6 +5,8 @@ import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.model.annotation.Group;
 import io.fabric8.kubernetes.model.annotation.Version;
 
+import java.util.Map;
+
 @Version(StackInstance.VERSION)
 @Group(StackInstance.GROUP)
 public class StackInstance extends CustomResource<StackInstanceSpec, StackInstanceStatus> implements Namespaced {
@@ -39,5 +41,9 @@ public class StackInstance extends CustomResource<StackInstanceSpec, StackInstan
 
     public String getNamespace() {
         return this.getMetadata().getNamespace();
+    }
+
+    public Iterable<? extends Map.Entry<String, String>> getVariablesAsEntrySet() {
+        return this.getSpec().getVars().entrySet();
     }
 }

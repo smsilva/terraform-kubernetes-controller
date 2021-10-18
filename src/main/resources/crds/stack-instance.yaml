@@ -83,6 +83,10 @@ spec:
           name: Outputs
           type: string
 
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+
         - jsonPath: .status.ready
           name: Status
           type: string

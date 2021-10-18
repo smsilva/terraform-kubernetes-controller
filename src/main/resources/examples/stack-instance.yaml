@@ -1,7 +1,7 @@
 apiVersion: terraform.silvios.me/v1
 kind: StackInstance
 metadata:
-  name: wasp-blue
+  name: africa-1
 spec:
   stack:
     provider: azure
@@ -9,7 +9,7 @@ spec:
     image: example
     version: 0.1.0
   vars:
-    region: eastus2
+    region: southafrica
   outputs:
     - name
     - id

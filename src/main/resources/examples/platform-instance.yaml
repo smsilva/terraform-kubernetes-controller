@@ -1,0 +1,7 @@
+apiVersion: silvios.me/v1
+kind: PlatformInstance
+metadata:
+  name: africa-1
+spec:
+  region: southafrica
+  provider: azure

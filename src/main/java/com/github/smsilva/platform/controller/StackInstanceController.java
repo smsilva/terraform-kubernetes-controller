@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class StackInstanceController {
@@ -138,15 +139,25 @@ public class StackInstanceController {
         logger.info(joblog);
     }
 
-    private static ConfigMap createConfigMap(StackInstance StackInstance, KubernetesClient client) {
+    private static ConfigMap createConfigMap(StackInstance stackInstance, KubernetesClient client) {
         Resource<ConfigMap> configMapResource = client
                 .configMaps()
-                .inNamespace(StackInstance.getMetadata().getNamespace())
-                .withName(StackInstance.getMetadata().getName());
+                .inNamespace(stackInstance.getMetadata().getNamespace())
+                .withName(stackInstance.getMetadata().getName());
 
-        return configMapResource.createOrReplace(new ConfigMapBuilder().
-                withNewMetadata().withName(StackInstance.getMetadata().getName()).endMetadata().
-                addToData("STACK_INSTANCE_NAME", StackInstance.getMetadata().getName()).
+        String region = stackInstance.getSpec().getVars().get("region");
+
+        ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
+                .withNewMetadata()
+                .withName(stackInstance.getName())
+                .endMetadata();
+
+        for (Map.Entry<String, String> variable : stackInstance.getVariablesAsEntrySet()) {
+            configMapBuilder.addToData(variable.getKey(), variable.getValue());
+        }
+
+        return configMapResource.createOrReplace(configMapBuilder.
+                addToData("STACK_INSTANCE_NAME", stackInstance.getName()).
                 addToData("DEBUG", "0").
                 build());
     }
