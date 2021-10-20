@@ -4,6 +4,7 @@ sleep 1 && \
 clear && \
 kubectl explain StackInstance.spec && \
 kubectl delete StackInstance --all && \
+kubectl delete Job --all && \
 echo "" && \
 kubectl apply -f src/main/resources/examples/stack-instance.yaml && \
 echo "" && \

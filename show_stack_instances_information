@@ -1,0 +1,18 @@
+#!/bin/bash
+CRD_GROUP="terraform.silvios.me"
+
+show_line() {
+  MESSAGE=${1}
+  OUTPUT=${2}
+
+  echo "${MESSAGE}:"
+  echo ""
+  (bash -c "${OUTPUT}" 2>&1) | awk '{ print "  " $0 }'
+  echo ""
+}
+
+show_line "StackInstance Objects"                     "kubectl get StackInstance --show-labels"
+show_line "StackInstance ConfigMap"                   "kubectl get ConfigMap africa-1 -o json | jq .data | grep TF_VAR"
+show_line "StackInstance Jobs"                        "kubectl get Job --show-labels"
+show_line "StackInstance PODs"                        "kubectl get Pod --show-labels"
+show_line "StackInstance PODs logs (last 50 lines)"   "kubectl logs -l job-name=africa-1 --tail 50"
