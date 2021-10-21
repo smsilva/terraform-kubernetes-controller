@@ -29,7 +29,7 @@ kubectl config get-contexts
 watch -n 3 ./scripts/show_stack_instances_information
 
 # Terminal [2]: Deploy the Stack Instance Again
-./install-crd-and-create-a-new-stack-instance-object
+./scripts/install-crd-and-create-a-new-stack-instance-object
 ```
 
 ## Build and Install terraform-controller
