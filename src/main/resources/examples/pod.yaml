@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: azure-example
+  namespace: default
+spec:
+  containers:
+    - name: apply
+      image: silviosilva/azure-example:0.1.0
+      args: ["apply", "-auto-approve", "-no-color"]
+      envFrom:
+        - secretRef:
+            name: azure-credentials
+        - configMapRef:
+            name: azure-example
+      env:
+        - name: DEBUG
+          value: "1"
+    - name: output
+      image: silviosilva/azure-example:0.1.0
+      args: ["output", "-json"]
+      envFrom:
+        - secretRef:
+            name: azure-credentials
+        - configMapRef:
+            name: azure-example
+      env:
+        - name: DEBUG
+          value: "0"
+  restartPolicy: OnFailure

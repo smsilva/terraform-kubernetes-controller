@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-example
+  namespace: default
+data:
+  TF_VAR_region: centralus
+  STACK_INSTANCE_NAME: blue

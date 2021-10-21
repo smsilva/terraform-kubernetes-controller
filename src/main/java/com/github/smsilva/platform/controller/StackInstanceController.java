@@ -112,14 +112,14 @@ public class StackInstanceController {
                     .withArgs("output", "-json")
                     .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
                 .endContainer()
-                    .addNewInitContainer()
-                        .withName("apply")
-                        .withImage(stackInstance.getImage())
-                        .withArgs("apply", "-auto-approve", "-input=false", "-no-color")
-                        .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                .addNewInitContainer()
+                    .withName("apply")
+                    .withImage(stackInstance.getImage())
+                    .withArgs("apply", "-auto-approve", "-input=false", "-no-color")
+                    .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
                 .endInitContainer()
-                .endSpec()
-                .build();
+            .endSpec()
+            .build();
 
         client.pods()
             .inNamespace(namespace)
@@ -137,7 +137,7 @@ public class StackInstanceController {
                 .withName(pod.getMetadata().getName())
                 .waitUntilCondition(p -> p.getStatus()
                         .getPhase()
-                        .equals("Succeeded"), 2, TimeUnit.MINUTES);
+                        .equals("Completed"), 2, TimeUnit.MINUTES);
 
             logger.info("POD {} finished successfully", pod
                     .getMetadata()
