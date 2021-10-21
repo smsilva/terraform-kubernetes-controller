@@ -4,5 +4,5 @@ metadata:
   name: azure-example
   namespace: default
 data:
-  TF_VAR_region: centralus
   STACK_INSTANCE_NAME: blue
+  TF_VAR_region: centralus

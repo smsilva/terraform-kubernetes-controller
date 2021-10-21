@@ -132,12 +132,15 @@ public class StackInstanceController {
                 .getName());
 
         try {
-            client.pods()
-                .inNamespace(namespace)
-                .withName(pod.getMetadata().getName())
-                .waitUntilCondition(p -> p.getStatus()
-                        .getPhase()
-                        .equals("Completed"), 2, TimeUnit.MINUTES);
+//            client.pods()
+//                .inNamespace(namespace)
+//                .withName(pod.getMetadata().getName())
+//                .waitUntilCondition(p -> p.getStatus()
+//                        .getPhase()
+//                        .equals("Completed"), 2, TimeUnit.MINUTES);
+
+            Thread.sleep(10000);
+            Thread.sleep(10000);
 
             logger.info("POD {} finished successfully", pod
                     .getMetadata()
@@ -146,7 +149,7 @@ public class StackInstanceController {
             String podLog = client.pods()
                 .inNamespace(namespace)
                 .withName(stackInstance.getName())
-                .inContainer("c1")
+                .inContainer("output")
                 .getLog();
 
             client.pods()

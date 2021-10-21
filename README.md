@@ -8,9 +8,6 @@ kubectl config get-contexts
 
 # Create a Kind Cluster (it should take less than 2 minutes)
 ./scripts/create-kind-cluster
-
-# External Secrets Install
-./scripts/install_external_secrets
 ```
 
 ## Create ARM Secret manually
@@ -50,7 +47,7 @@ wasp platform instance create \
   --region "southafrica" \
   --provider "azure"
 
-wasp platform instance list --output table
+wasp platform instance list
 
 wasp cluster create \
   --platform-instance "africa-1" \
