@@ -46,4 +46,9 @@ public class StackInstance extends CustomResource<StackInstanceSpec, StackInstan
     public Iterable<? extends Map.Entry<String, String>> getVariablesAsEntrySet() {
         return this.getSpec().getVars().entrySet();
     }
+
+    public String getSecretName() {
+        return this.getProvider() + "-" + "credentials";
+    }
+
 }
