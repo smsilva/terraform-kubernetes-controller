@@ -1,0 +1,4 @@
+wasp platform instance create \
+  --name "africa-1" \
+  --region "southafrica" \
+  --provider "azure"

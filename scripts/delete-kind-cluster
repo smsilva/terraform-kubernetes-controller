@@ -1,0 +1,7 @@
+#!/bin/bash
+if grep --quiet kind-trash <<< $(kubectl config get-contexts); then
+  kind delete cluster --name trash
+  kubectl config get-contexts
+else
+  echo "Kind trash cluster not found. Nothing to do."
+fi

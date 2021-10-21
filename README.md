@@ -7,32 +7,10 @@
 kubectl config get-contexts
 
 # Create a Kind Cluster (it should take less than 2 minutes)
-create_kind_cluster() {
-  KIND_CLUSTER_NAME="trash" && \
-  kind create cluster \
-    --config "kind-cluster-config.yaml" \
-    --name "${KIND_CLUSTER_NAME?}" && \
-  for NODE in $(kubectl get nodes --output name); do
-    kubectl wait ${NODE} \
-      --for condition=Ready \
-      --timeout=360s
-  done && \
-  kubectl config get-contexts
-}
-time create_kind_cluster
+./scripts/create-kind-cluster
 
 # External Secrets Install
-install_external_secrets() {
-  helm repo add external-secrets https://external-secrets.github.io/kubernetes-external-secrets/ && \
-  HELM_CHART_NEWEST_VERSION=$(helm search repo external-secrets -l | sed 1d | awk '{ print $2}' | sort --version-sort | tail --lines 1) && \
-  echo "${HELM_CHART_NEWEST_VERSION}" && \
-  helm install external-secrets external-secrets/kubernetes-external-secrets \
-  --create-namespace \
-  --namespace external-secrets \
-  --version "${HELM_CHART_NEWEST_VERSION?}" \
-  --wait
-}
-time install_external_secrets
+./scripts/install_external_secrets
 ```
 
 ## Create ARM Secret manually
@@ -41,39 +19,51 @@ time install_external_secrets
 # Configuring the Service Principal in Terraform
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret#configuring-the-service-principal-in-terraform
 
-./create-azure-secret
-```
-
-## Build and Install terraform-controller
-
-```bash
-# Terminal [1]: Watch terraform-controller Deployment
-watch -n 3 ./show_terraform_controller_and_stack_instances_information
-
-# Terminal [2]: Build and Deploy terraform-controller
-./build-and-install-terraform-controller
+./scripts/create-azure-secret
 ```
 
 ## Install Stack Instance CRD and Deploy a New Stack Instance Object
 
 ```bash
 # Terminal [1]: Watch Stack Instance Information
-watch -n 3 ./show_stack_instances_information
+watch -n 3 ./scripts/show_stack_instances_information
 
 # Terminal [2]: Deploy the Stack Instance Again
 ./install-crd-and-create-a-new-stack-instance-object
 ```
 
+## Build and Install terraform-controller
+
+```bash
+# Terminal [1]: Watch terraform-controller Deployment
+watch -n 3 ./scripts/show_terraform_controller_and_stack_instances_information
+
+# Terminal [2]: Build and Deploy terraform-controller
+./build-and-install-terraform-controller
+```
+
+## Scenario
+
+```bash
+wasp platform instance create \
+  --name "africa-1" \
+  --region "southafrica" \
+  --provider "azure"
+
+wasp platform instance list --output table
+
+wasp cluster create \
+  --platform-instance "africa-1" \
+  --ingress-cname "wasp-services"
+  --name "k8s-green" \
+  --version "1.20.7" \
+
+```
+
 ## Cleanup
 
 ```bash
-# Create a Kind Cluster (it should take less than 2 minutes)
-if grep --quiet kind-trash <<< $(kubectl config get-contexts); then
-  kind delete cluster --name trash
-  kubectl config get-contexts
-else
-  echo "Kind trash cluser not found. Nothing to do."
-fi
+./scripts/delete-kind-cluster
 ```
 
 ## References
