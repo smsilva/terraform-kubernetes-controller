@@ -9,7 +9,7 @@ spec:
     image: example
     version: 0.1.0
   vars:
-    region: centralus-3
+    region: centralus-7
   outputs:
     - name
     - id

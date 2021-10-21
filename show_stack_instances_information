@@ -11,8 +11,9 @@ show_line() {
   echo ""
 }
 
-show_line "StackInstance Objects"                     "kubectl get StackInstance --show-labels"
-show_line "StackInstance ConfigMap"                   "kubectl get ConfigMap africa-1 -o json | jq .data | grep TF_VAR"
-show_line "StackInstance Jobs"                        "kubectl get Job --show-labels"
-show_line "StackInstance PODs"                        "kubectl get Pod --show-labels"
-show_line "StackInstance PODs logs (last 50 lines)"   "kubectl logs -l job-name=africa-1 --tail 50"
+show_line "StackInstance Objects"     "kubectl get StackInstance --show-labels"
+#show_line "StackInstance ConfigMap"   "kubectl get ConfigMap africa-1 -o json | jq .data | grep TF_VAR"
+show_line "StackInstance POD"         "kubectl get Pod --show-labels"
+#show_line "Container APPLY  logs"     "kubectl logs -l stack-instance-name=africa-1 -c apply  --tail 10"
+show_line "Container OUTPUT logs"     "kubectl logs -l stack-instance-name=africa-1 -c output --tail 20"
+show_line "Describe POD"              "kubectl describe pod africa-1 | tail -10"

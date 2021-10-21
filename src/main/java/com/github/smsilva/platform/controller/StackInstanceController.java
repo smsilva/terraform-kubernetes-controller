@@ -70,108 +70,93 @@ public class StackInstanceController {
         reconcile(stackInstance, client);
     }
 
-    private static void reconcile(StackInstance StackInstance, KubernetesClient client)  {
+    private static void reconcile(StackInstance stackInstance, KubernetesClient client)  {
         try {
-            ConfigMap configMap = createConfigMap(StackInstance, client);
+            ConfigMap configMap = createConfigMap(stackInstance, client);
 
-            createJob(StackInstance, client, configMap);
+            createJob(stackInstance, client, configMap);
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
     }
 
     private static void createJob(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
-        String stackInstanceName = stackInstance.getName();
-        String jobName = stackInstanceName;
         String namespace = stackInstance.getNamespace();
 
         String provider = stackInstance.getProvider();
         String image = stackInstance.getImage();
 
         EnvFromSource envFromSourceConfigMap = new EnvFromSourceBuilder()
-                .withNewConfigMapRef()
-                .withName(configMap.getMetadata().getName())
-                .endConfigMapRef()
-                .build();
+            .withNewConfigMapRef()
+            .withName(configMap.getMetadata().getName())
+            .endConfigMapRef()
+            .build();
 
         String secretNameCredentials = provider + "-" + "credentials";
 
         EnvFromSource envFromSourceSecret = new EnvFromSourceBuilder()
-                .withNewSecretRef()
-                .withName(secretNameCredentials)
-                .endSecretRef()
-                .build();
-
-        final Job job = new JobBuilder()
-            .withApiVersion("batch/v1")
-            .withNewMetadata()
-                .withName(jobName)
-                .withLabels(Collections.singletonMap(STACK_INSTANCE_NAME, stackInstanceName))
-                .withAnnotations(Collections.singletonMap(STACK_INSTANCE_NAME, stackInstanceName))
-            .endMetadata()
-            .withNewSpec()
-                .withNewTemplate()
-                    .withNewSpec()
-                        .addNewContainer()
-                            .withName("apply")
-                            .withImage(image)
-                            .withArgs("apply", "-auto-approve", "-no-color", "-input=false")
-                            .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
-                        .endContainer()
-                        .withRestartPolicy("Never")
-                    .endSpec()
-                .endTemplate()
-                .withBackoffLimit(2)
-            .endSpec()
+            .withNewSecretRef()
+            .withName(secretNameCredentials)
+            .endSecretRef()
             .build();
 
-        logger.info("Creating JOB {}", jobName);
+        Pod pod = new PodBuilder()
+            .withNewMetadata()
+                .withName(stackInstance.getName())
+                .withLabels(Collections.singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
+            .endMetadata()
+            .withNewSpec()
+                .addNewContainer()
+                    .withName("output")
+                    .withImage(stackInstance.getImage())
+                    .withArgs("output", "-json")
+                    .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                .endContainer()
+                    .addNewInitContainer()
+                        .withName("apply")
+                        .withImage(stackInstance.getImage())
+                        .withArgs("apply", "-auto-approve", "-input=false", "-no-color")
+                        .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                .endInitContainer()
+                .endSpec()
+                .build();
 
-        client.batch().v1()
-                .jobs()
-                .inNamespace(namespace)
-                .createOrReplace(job);
+        client.pods()
+            .inNamespace(namespace)
+            .createOrReplace(pod);
 
         Thread.sleep(10000);
 
+        logger.info("Waiting for POD {} logs", pod
+                .getMetadata()
+                .getName());
+
         try {
-            logger.info("Getting POD List from JOB: {}", job.getMetadata().getName());
+            client.pods()
+                .inNamespace(namespace)
+                .withName(pod.getMetadata().getName())
+                .waitUntilCondition(p -> p.getStatus()
+                        .getPhase()
+                        .equals("Succeeded"), 2, TimeUnit.MINUTES);
 
-            PodList podList = client
-                    .pods()
-                    .inNamespace(namespace)
-                    .withLabel("job-name", job.getMetadata().getName())
-                    .list();
+            logger.info("POD {} finished successfully", pod
+                    .getMetadata()
+                    .getName());
 
-            logger.info("POD List from JOB {}: {}", job.getMetadata().getName(), podList.getItems().size());
+            String podLog = client.pods()
+                .inNamespace(namespace)
+                .withName(stackInstance.getName())
+                .inContainer("c1")
+                .getLog();
 
-            if (podList.getItems().size() > 0) {
-                logger.info("Waiting for Succeeded execution: {}", job.getMetadata().getName());
+            client.pods()
+                .inNamespace(namespace)
+                .withName(stackInstance.getName())
+                .delete();
 
-                try {
-                    client.pods()
-                            .inNamespace(namespace)
-                            .withName(podList.getItems().get(0).getMetadata().getName())
-                            .waitUntilCondition(pod -> pod.getStatus().getPhase().equals("Succeeded"), 1, TimeUnit.MINUTES);
-
-                    String joblog = client.batch().v1()
-                            .jobs()
-                            .inNamespace(namespace)
-                            .withName(jobName)
-                            .getLog();
-
-                    logger.info(joblog);
-                } catch (Exception e) {
-                    logger.error(e.getMessage());
-                }
-            }
-        } finally {
-            logger.info("Deleting job: {}", job.getMetadata().getSelfLink());
-
-//            client.batch().v1()
-//                .jobs()
-//                .inNamespace(namespace)
-//                .delete(job);
+            logger.info(podLog);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
         }
     }
 
