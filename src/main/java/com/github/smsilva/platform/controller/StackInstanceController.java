@@ -1,5 +1,8 @@
 package com.github.smsilva.platform.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.github.smsilva.platform.model.v1.StackInstance;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
@@ -146,6 +149,34 @@ public class StackInstanceController {
                 .getLog();
 
             logger.info(podLog);
+
+            ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
+                    .withNewMetadata()
+                        .withName(stackInstance.getName())
+                    .endMetadata()
+                    .addToData("outputs.raw", podLog);
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+
+                JsonNode jsonObject = mapper.readTree(podLog);
+
+                for (String key : stackInstance.getSpec().getOutputs()) {
+                    JsonNode jsonObjectOutput = jsonObject.get(key);
+                    JsonNode value = jsonObjectOutput.get("value");
+                    logger.info("  outputs.{}={}", key, value);
+                    configMapBuilder.addToData("outputs." + key, value.textValue());
+                }
+
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+            }
+
+            client
+                .configMaps()
+                .inNamespace(stackInstance.getNamespace())
+                .withName(stackInstance.getName())
+                .createOrReplace(configMapBuilder.build());
 
             logger.info("Request POD {} exclusion", pod.getFullResourceName());
 
