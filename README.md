@@ -3,9 +3,6 @@
 ## Setup
 
 ```bash
-# Check Kubernetes Contexts
-kubectl config get-contexts
-
 # Create a Kind Cluster (it should take less than 2 minutes)
 ./scripts/create-kind-cluster
 ```
@@ -15,7 +12,6 @@ kubectl config get-contexts
 ```bash
 # Configuring the Service Principal in Terraform
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret#configuring-the-service-principal-in-terraform
-
 ./scripts/create-azure-secret
 ```
 
