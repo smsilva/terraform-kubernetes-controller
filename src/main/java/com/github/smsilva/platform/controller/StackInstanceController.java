@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class StackInstanceController {
@@ -194,6 +195,45 @@ public class StackInstanceController {
             Resource<StackInstance> stackInstanceResource = client.resources(StackInstance.class, StackInstanceList.class)
                     .inNamespace(stackInstance.getNamespace())
                     .withName(stackInstance.getName());
+
+            logger.info("stackInstance.getMetadata().getUid(): {}", stackInstance.getMetadata().getUid());
+
+            ObjectReference objectReference = new ObjectReferenceBuilder()
+                    .withUid(stackInstance.getMetadata().getUid())
+                    .withApiVersion(stackInstance.getApiVersion())
+                    .withKind(stackInstance.getKind())
+                    .withNamespace(stackInstance.getNamespace())
+                    .withName(stackInstance.getName())
+                    .build();
+
+            logger.info("objectReference: {}", objectReference);
+
+            try {
+                logger.info("Creating Event");
+
+                String eventNameWithUUID = "myeventname_" + UUID.randomUUID();
+                Event myevent = new EventBuilder()
+                        .withInvolvedObject(objectReference)
+                        .withNewMetadata()
+                            .withName(eventNameWithUUID)
+                        .withNamespace(stackInstance.getNamespace())
+                        .endMetadata()
+                        .withType("Normal")
+                        .withReason("Reconciled")
+                        .withMessage("This is the event message: " + eventNameWithUUID)
+                        .build();
+
+                logger.info("myevent: {}", myevent);
+
+                Event event = client.v1()
+                        .events()
+                        .createOrReplace(myevent);
+
+                logger.info("Event: {}", event);
+            } catch (Exception e) {
+                logger.error("Error creating event {}", e.getMessage());
+                e.printStackTrace();
+            }
 
             logger.info("Done");
         } catch (Exception e) {

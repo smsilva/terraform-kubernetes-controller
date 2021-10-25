@@ -12,8 +12,9 @@ show_line() {
 }
 
 show_line "StackInstance Objects"     "kubectl get StackInstance --show-labels"
-show_line "StackInstance ConfigMap"   "kubectl get ConfigMap africa-1"
-show_line "StackInstance POD"         "kubectl get Pod --show-labels"
-show_line "Container APPLY  logs"     "kubectl logs -l stack-instance-name=africa-1 -c apply  --tail 10"
-show_line "Container OUTPUT logs"     "kubectl logs -l stack-instance-name=africa-1 -c output --tail 10"
-show_line "Describe POD"              "kubectl describe pod | tail -20"
+#show_line "StackInstance ConfigMap"   "kubectl get ConfigMap africa-1"
+#show_line "StackInstance POD"         "kubectl get Pod --show-labels"
+#show_line "Container APPLY  logs"     "kubectl logs -l stack-instance-name=africa-1 -c apply  --tail 10"
+#show_line "Container OUTPUT logs"     "kubectl logs -l stack-instance-name=africa-1 -c output --tail 10"
+#show_line "Describe POD"              "kubectl describe pod | tail -20"
+show_line "StackInstances Events"     "kubectl describe si africa-1 | tail -15"
