@@ -2,11 +2,4 @@
 clear
 kubectl apply -f src/main/resources/crds/stack-instance.yaml && \
 sleep 3 && \
-kubectl explain StackInstance.spec
-kubectl delete StackInstance --all
-kubectl delete Job --all
-kubectl delete Pod --selector stack-instance-name=africa-1
-echo "" && \
-kubectl apply -f src/main/resources/examples/stack-instance.yaml && \
-echo "" && \
-kubectl get StackInstances
+helm template src/main/resources/examples/stack-instances | kubectl apply -f -

@@ -14,10 +14,11 @@ import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class StackInstanceController {
@@ -192,52 +193,69 @@ public class StackInstanceController {
                     .withName(podName)
                     .delete();
 
-            Resource<StackInstance> stackInstanceResource = client.resources(StackInstance.class, StackInstanceList.class)
-                    .inNamespace(stackInstance.getNamespace())
-                    .withName(stackInstance.getName());
-
-            logger.info("stackInstance.getMetadata().getUid(): {}", stackInstance.getMetadata().getUid());
-
-            ObjectReference objectReference = new ObjectReferenceBuilder()
-                    .withUid(stackInstance.getMetadata().getUid())
-                    .withApiVersion(stackInstance.getApiVersion())
-                    .withKind(stackInstance.getKind())
-                    .withNamespace(stackInstance.getNamespace())
-                    .withName(stackInstance.getName())
-                    .build();
-
-            logger.info("objectReference: {}", objectReference);
-
-            try {
-                logger.info("Creating Event");
-
-                String eventNameWithUUID = "myeventname_" + UUID.randomUUID();
-                Event myevent = new EventBuilder()
-                        .withInvolvedObject(objectReference)
-                        .withNewMetadata()
-                            .withName(eventNameWithUUID)
-                        .withNamespace(stackInstance.getNamespace())
-                        .endMetadata()
-                        .withType("Normal")
-                        .withReason("Reconciled")
-                        .withMessage("This is the event message: " + eventNameWithUUID)
-                        .build();
-
-                logger.info("myevent: {}", myevent);
-
-                Event event = client.v1()
-                        .events()
-                        .createOrReplace(myevent);
-
-                logger.info("Event: {}", event);
-            } catch (Exception e) {
-                logger.error("Error creating event {}", e.getMessage());
-                e.printStackTrace();
-            }
+            createEvent(stackInstance, client);
 
             logger.info("Done");
         } catch (Exception e) {
             logger.error(e.getMessage());
+        }
+    }
+
+    private static void createEvent(StackInstance stackInstance, KubernetesClient client) {
+        logger.info("stackInstance.getMetadata().getUid(): {}", stackInstance.getMetadata().getUid());
+
+        ObjectReference objectReference = new ObjectReferenceBuilder()
+                .withUid(stackInstance.getMetadata().getUid())
+                .withApiVersion(stackInstance.getApiVersion())
+                .withKind(stackInstance.getKind())
+                .withNamespace(stackInstance.getNamespace())
+                .withName(stackInstance.getName())
+                .build();
+
+        logger.info("objectReference: {}", objectReference);
+
+        try {
+            String eventNameWithUUID = stackInstance.getName() + "_" +  UUID.randomUUID();
+
+            logger.info("Creating Event {}", eventNameWithUUID);
+
+            ZonedDateTime zonedDateTime = ZonedDateTime.now();
+            LocalDateTime localDateTime = LocalDateTime.now();
+
+            logger.info("zonedDateTime: {}", zonedDateTime);
+            logger.info("localDateTime: {}", localDateTime);
+
+            final DateTimeFormatter microTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSSSSXXX");
+
+            MicroTime microTime = new MicroTimeBuilder()
+                    .withTime(microTimeFormatter.format(zonedDateTime))
+                    .build();
+
+            logger.info("microTime: {}", microTime);
+
+            Event reconcileEvent = new EventBuilder()
+                    .withInvolvedObject(objectReference)
+                    .withNewMetadata()
+                        .withName(eventNameWithUUID)
+                        .withNamespace(stackInstance.getNamespace())
+                    .endMetadata()
+                    .withEventTime(microTime)
+                    .withReportingInstance("ReportInstance")
+                    .withReportingComponent("ComponentReporting")
+                    .withAction("Update")
+                    .withType("Normal")
+                    .withReason("Reconciled")
+                    .withMessage("This is the event message: " + eventNameWithUUID)
+                    .build();
+
+            Event createdEvent = client.v1()
+                    .events()
+                    .createOrReplace(reconcileEvent);
+
+            logger.info("createdEvent: {}", createdEvent);
+        } catch (Exception e) {
+            logger.error("Error creating event {}", e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -247,11 +265,14 @@ public class StackInstanceController {
                 .getContainerStatuses();
 
         for (ContainerStatus containerStatus : containerStatuses) {
-            logger.info("  isCompleted :: container: {}", containerStatus.getName());
-            logger.info("    containerStatus.getState(): {}", containerStatus.getState());
-            logger.info("    containerStatus.getState().getTerminated(): {}", containerStatus.getState().getTerminated());
+            logger.info("{} :: state :: {}",
+                    containerStatus.getName(),
+                    containerStatus.getState());
+
             if (containerStatus.getState().getTerminated() != null) {
-                logger.info("    containerStatus.getState().getTerminated().getReason(): {}", containerStatus.getState().getTerminated().getReason());
+                logger.info("{} :: state :: TERMINATED :: reason: {}",
+                        containerStatus.getName(),
+                        containerStatus.getState().getTerminated().getReason());
 
                 if (containerStatus.getState().getTerminated().getReason().equals("Completed")) {
                     return true;
