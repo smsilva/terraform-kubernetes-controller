@@ -2,7 +2,6 @@ package com.github.smsilva.platform.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.github.smsilva.platform.model.v1.StackInstance;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
@@ -59,8 +58,9 @@ public class StackInstanceController {
                 logger.info("I'll sleep for 10 minutes (?)");
 
                 TimeUnit.MINUTES.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+                e.printStackTrace();
             }
         }
     }
@@ -76,13 +76,13 @@ public class StackInstanceController {
         try {
             ConfigMap configMap = createConfigMap(stackInstance, client);
 
-            createJob(stackInstance, client, configMap);
+            createPod(stackInstance, client, configMap);
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
     }
 
-    private static void createJob(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
+    private static void createPod(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
         String namespace = stackInstance.getNamespace();
 
         EnvFromSource envFromSourceConfigMap = new EnvFromSourceBuilder()
@@ -140,32 +140,37 @@ public class StackInstanceController {
                 .withName(pod.getMetadata().getName())
                 .waitUntilCondition(StackInstanceController::isCompleted, 1, TimeUnit.MINUTES);
 
+            String applyLog = client.pods()
+                    .inNamespace(namespace)
+                    .withName(podName)
+                    .inContainer("apply")
+                    .getLog();
+
             logger.info("I'll try to retrieve Logs from output container at POD {}", pod.getMetadata().getName());
 
-            String podLog = client.pods()
+            String outputLog = client.pods()
                 .inNamespace(namespace)
                 .withName(podName)
                 .inContainer("output")
                 .getLog();
 
-            logger.info(podLog);
-
             ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
                     .withNewMetadata()
                         .withName(stackInstance.getName())
                     .endMetadata()
-                    .addToData("outputs.raw", podLog);
+                    .addToData("apply.log", applyLog)
+                    .addToData("output.log", outputLog);
 
             try {
                 ObjectMapper mapper = new ObjectMapper();
 
-                JsonNode jsonObject = mapper.readTree(podLog);
+                JsonNode jsonObject = mapper.readTree(outputLog);
 
                 for (String key : stackInstance.getSpec().getOutputs()) {
                     JsonNode jsonObjectOutput = jsonObject.get(key);
                     JsonNode value = jsonObjectOutput.get("value");
-                    logger.info("  outputs.{}={}", key, value);
-                    configMapBuilder.addToData("outputs." + key, value.textValue());
+                    logger.info("  output_{}={}", key, value);
+                    configMapBuilder.addToData("output_" + key, value.textValue());
                 }
 
             } catch (Exception e) {

@@ -1,7 +1,9 @@
+{{- range $instance := .Values.instances }}
+---
 apiVersion: terraform.silvios.me/v1
 kind: StackInstance
 metadata:
-  name: africa-1
+  name: {{ $instance.name }}
 spec:
   stack:
     provider: azure
@@ -9,7 +11,8 @@ spec:
     image: example
     version: 0.1.0
   vars:
-    region: region-10
+    region: {{ $instance.region }}
   outputs:
     - name
     - id
+{{- end }}

@@ -23,6 +23,13 @@ watch -n 3 ./scripts/show_stack_instances_information
 
 # Terminal [2]: Deploy the Stack Instance Again
 ./scripts/install-crd-and-create-a-new-stack-instance-object
+
+# Retrieve apply and output logs
+kubectl get cm africa-1 -o json | jq '.data."apply.log"' -r
+kubectl get cm africa-1 -o json | jq '.data."output.log"' -r
+
+# Test using Helm
+helm template src/main/resources/examples/stack-instances | kubectl apply -f -
 ```
 
 ## Build and Install terraform-controller
