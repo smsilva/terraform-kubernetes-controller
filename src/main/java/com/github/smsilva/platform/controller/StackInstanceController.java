@@ -3,6 +3,7 @@ package com.github.smsilva.platform.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.smsilva.platform.model.v1.StackInstance;
+import com.github.smsilva.platform.model.v1.StackInstanceList;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -189,6 +190,10 @@ public class StackInstanceController {
                     .inNamespace(namespace)
                     .withName(podName)
                     .delete();
+
+            Resource<StackInstance> stackInstanceResource = client.resources(StackInstance.class, StackInstanceList.class)
+                    .inNamespace(stackInstance.getNamespace())
+                    .withName(stackInstance.getName());
 
             logger.info("Done");
         } catch (Exception e) {
