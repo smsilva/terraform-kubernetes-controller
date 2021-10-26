@@ -28,40 +28,38 @@ public class StackInstanceController {
     public static void main(String[] args) throws Exception {
         logger.info("Starting...");
 
-        while (true) {
-            try (KubernetesClient client = new DefaultKubernetesClient()) {
+        try (KubernetesClient client = new DefaultKubernetesClient()) {
 
-                SharedInformerFactory sharedInformerFactory = client.informers();
+            SharedInformerFactory sharedInformerFactory = client.informers();
 
-                SharedIndexInformer<StackInstance> sharedIndexInformer = sharedInformerFactory
-                        .sharedIndexInformerFor(StackInstance.class, 30 * 1000L);
+            SharedIndexInformer<StackInstance> sharedIndexInformer = sharedInformerFactory
+                    .sharedIndexInformerFor(StackInstance.class, 30 * 1000L);
 
-                sharedIndexInformer.addEventHandler(new ResourceEventHandler<StackInstance>() {
-                    @Override
-                    public void onAdd(StackInstance instance) {
-                        onAddHandle(instance, client);
+            sharedIndexInformer.addEventHandler(new ResourceEventHandler<StackInstance>() {
+                @Override
+                public void onAdd(StackInstance instance) {
+                    onAddHandle(instance, client);
+                }
+
+                @Override
+                public void onUpdate(StackInstance oldResource, StackInstance newResource) {
+                    if (theyAreDifferent(oldResource, newResource)) {
+                        onUpdateHandle(oldResource, newResource, client);
                     }
+                }
 
-                    @Override
-                    public void onUpdate(StackInstance oldResource, StackInstance newResource) {
-                        if (theyAreDifferent(oldResource, newResource)) {
-                            onUpdateHandle(oldResource, newResource, client);
-                        }
-                    }
+                @Override
+                public void onDelete(StackInstance StackInstance, boolean b) {
+                    onDeleteHandle(StackInstance, client);
+                }
+            });
 
-                    @Override
-                    public void onDelete(StackInstance StackInstance, boolean b) {
-                        onDeleteHandle(StackInstance, client);
-                    }
-                });
+            sharedInformerFactory.startAllRegisteredInformers();
 
-                sharedInformerFactory.startAllRegisteredInformers();
-
-                TimeUnit.MINUTES.sleep(10);
-            } catch (Exception e) {
-                logger.error(e.getMessage());
-                e.printStackTrace();
-            }
+            TimeUnit.DAYS.sleep(1000);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -94,27 +92,27 @@ public class StackInstanceController {
     private static void reconcile(StackInstance stackInstance, KubernetesClient client, String reason) {
         logger.info("reconcile :: reason = {} :: {}", reason, stackInstance);
         try {
-            createEvent(stackInstance, client, reason, "Need to execute Terraform Apply.");
+            createEvent(stackInstance, client, "ReconciliationStart", reason, "Terraform reconciliation started");
 
             ConfigMap configMap = createOrReplace(stackInstance, client);
 
-            createEvent(stackInstance, client, reason, "ConfigMap created: " + configMap.getMetadata().getName());
+            createEvent(stackInstance, client, "ConfigMapCreation", reason, "ConfigMap created: " + configMap.getMetadata().getName());
 
             Pod pod = createOrReplace(stackInstance, client, configMap);
 
-            createEvent(stackInstance, client, reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
+            createEvent(stackInstance, client, "PodExecutuonStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
 
             waitForComplete(client, pod);
 
-            createEvent(stackInstance, client, reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
+            createEvent(stackInstance, client, "PodExecutuonCompleted", reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
 
             updateConfigMap(stackInstance, client, pod);
 
-            createEvent(stackInstance, client, reason, "Pod: " + pod.getMetadata().getName() + " deleted.");
+            createEvent(stackInstance, client, "PodExclusionRequested", reason, "Pod: " + pod.getMetadata().getName() + " deleted.");
 
             delete(client, pod);
 
-            createEvent(stackInstance, client, reason, "Creation completed.");
+            createEvent(stackInstance, client, "ReconciliationDone", reason, "Creation completed.");
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
@@ -122,8 +120,6 @@ public class StackInstanceController {
 
     private static Pod createOrReplace(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
         String podName = stackInstance.getName() + stackInstance.getVersion();
-
-        logger.info("Creating POD {}", podName);
 
         client.pods()
             .inNamespace(stackInstance.getNamespace())
@@ -152,9 +148,14 @@ public class StackInstanceController {
             .endSpec()
             .build();
 
-        return client.pods()
-            .inNamespace(stackInstance.getNamespace())
-            .createOrReplace(pod);
+
+        Pod createdPod = client.pods()
+                .inNamespace(stackInstance.getNamespace())
+                .createOrReplace(pod);
+
+        logger.info("POD {} created.", createdPod.getMetadata().getName());
+
+        return createdPod;
     }
 
     private static void delete(KubernetesClient client, Pod pod) {
@@ -227,7 +228,7 @@ public class StackInstanceController {
             .getLog();
     }
 
-    private static Event createEvent(StackInstance stackInstance, KubernetesClient client, String reason, String message) throws Exception {
+    private static Event createEvent(StackInstance stackInstance, KubernetesClient client, String name, String reason, String message) throws Exception {
         ObjectReference objectReference = new ObjectReferenceBuilder()
             .withUid(stackInstance.getMetadata().getUid())
             .withApiVersion(stackInstance.getApiVersion())
@@ -236,9 +237,7 @@ public class StackInstanceController {
             .withName(stackInstance.getName())
             .build();
 
-        String eventNameWithUUID = stackInstance.getName() + "_" +  UUID.randomUUID();
-
-        logger.info("Creating Event {}", eventNameWithUUID);
+        String eventName = stackInstance.getName() + "-" + name + "-" + UUID.randomUUID();
 
         final DateTimeFormatter microTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSSSSXXX");
 
@@ -246,26 +245,33 @@ public class StackInstanceController {
             .withTime(microTimeFormatter.format(ZonedDateTime.now()))
             .build();
 
-        Event reconcileEvent = new EventBuilder()
+        Event event = new EventBuilder()
             .withInvolvedObject(objectReference)
             .withNewMetadata()
-                .withName(eventNameWithUUID)
+                .withName(eventName)
                 .withNamespace(stackInstance.getNamespace())
+                .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
             .endMetadata()
             .withEventTime(microTime)
             .withFirstTimestamp(microTimeFormatter.format(ZonedDateTime.now()))
             .withLastTimestamp(microTimeFormatter.format(ZonedDateTime.now()))
             .withReportingInstance("stack-instance-operator")
-            .withReportingComponent("stack-instance-operator")
+            .withReportingComponent("operator")
             .withAction("Update")
             .withType("Normal")
             .withReason(reason)
             .withMessage(message)
             .build();
 
-        return client.v1()
+        Event createdEvent = client.v1()
             .events()
-            .createOrReplace(reconcileEvent);
+            .createOrReplace(event);
+
+        logger.info("Event {} created", createdEvent.getMetadata().getName());
+
+        TimeUnit.SECONDS.sleep(1);
+
+        return createdEvent;
     }
 
     private static boolean isCompleted(Pod pod) {
