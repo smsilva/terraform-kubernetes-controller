@@ -4,7 +4,7 @@
 
 ```bash
 # Create a Kind Cluster (it should take less than 2 minutes)
-./scripts/create-kind-cluster
+scripts/create-kind-cluster
 ```
 
 ## Create ARM Secret manually
@@ -12,17 +12,17 @@
 ```bash
 # Configuring the Service Principal in Terraform
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret#configuring-the-service-principal-in-terraform
-./scripts/create-azure-secret
+scripts/create-azure-secret
 ```
 
 ## Install Stack Instance CRD and Deploy a New Stack Instance Object
 
 ```bash
 # Terminal [1]: Watch Stack Instance Information
-watch -n 3 ./scripts/show_stack_instances_information
+watch -n 3 scripts/show_stack_instances_information
 
 # Terminal [2]: Deploy the Stack Instance Again
-./scripts/install-crd-and-create-a-new-stack-instance-object
+scripts/install-crd-and-create-a-new-stack-instance-object
 
 # Retrieve apply and output logs
 kubectl get cm africa-1 -o json | jq '.data."apply.log"' -r
@@ -36,7 +36,7 @@ helm template src/main/resources/examples/stack-instances | kubectl apply -f -
 
 ```bash
 # Terminal [1]: Watch terraform-controller Deployment
-watch -n 3 ./scripts/show_terraform_controller_and_stack_instances_information
+watch -n 3 scripts/show_terraform_controller_and_stack_instances_information
 
 # Terminal [2]: Build and Deploy terraform-controller
 ./build-and-install-terraform-controller
@@ -63,7 +63,7 @@ wasp cluster create \
 ## Cleanup
 
 ```bash
-./scripts/delete-kind-cluster
+scripts/delete-kind-cluster
 ```
 
 ## References

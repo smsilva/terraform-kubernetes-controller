@@ -66,23 +66,61 @@ public class StackInstanceController {
     }
 
     private static void onAddHandle(StackInstance stackInstance, KubernetesClient client) {
-        logger.info("ADD {}", stackInstance);
+        reconcile(stackInstance, client, "Creation");
+    }
 
+    private static void onUpdateHandle(StackInstance oldResource, StackInstance newResource, KubernetesClient client) {
+        logger.info("UPDATE {} - {}/{}",
+                oldResource.getMetadata().getSelfLink(),
+                oldResource.getMetadata().getResourceVersion(),
+                newResource.getMetadata().getResourceVersion());
+
+        logger.info("    [{} {}] {}", oldResource.getMetadata().getUid(), oldResource.getMetadata().getResourceVersion(), oldResource);
+        logger.info("    [{} {}] {}", newResource.getMetadata().getUid(), newResource.getMetadata().getResourceVersion(), newResource);
+
+        reconcile(newResource, client, "Update");
+    }
+
+    private static void onDeleteHandle(StackInstance stackInstance, KubernetesClient client) {
+        reconcile(stackInstance, client, "Delete");
+
+        Boolean podDeleted = deletePod(client, stackInstance);
+        logger.info("POD {} exclusion: {}", stackInstance.getName(), podDeleted);
+
+        Boolean configMapDeleted = deleteConfigMap(client, stackInstance);
+        logger.info("ConfigMap {} exclusion: {}", stackInstance.getName(), configMapDeleted);
+    }
+
+    private static void reconcile(StackInstance stackInstance, KubernetesClient client, String reason) {
+        logger.info("reconcile :: reason = {} :: {}", reason, stackInstance);
         try {
-            createEvent(stackInstance, client, "SyncStarted", "New Instance created.");
-            ConfigMap configMap = createConfigMap(stackInstance, client);
-            Pod pod = createPod(stackInstance, client, configMap);
-            createEvent(stackInstance, client, "PodCreated", pod.getMetadata().getName());
+            createEvent(stackInstance, client, reason, "Need to execute Terraform Apply.");
+
+            ConfigMap configMap = createOrReplace(stackInstance, client);
+
+            createEvent(stackInstance, client, reason, "ConfigMap created: " + configMap.getMetadata().getName());
+
+            Pod pod = createOrReplace(stackInstance, client, configMap);
+
+            createEvent(stackInstance, client, reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
+
             waitForComplete(client, pod);
+
+            createEvent(stackInstance, client, reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
+
             updateConfigMap(stackInstance, client, pod);
+
+            createEvent(stackInstance, client, reason, "Pod: " + pod.getMetadata().getName() + " deleted.");
+
             delete(client, pod);
-            createEvent(stackInstance, client, "SyncDone", "Result here.");
+
+            createEvent(stackInstance, client, reason, "Creation completed.");
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
     }
 
-    private static Pod createPod(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
+    private static Pod createOrReplace(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
         String podName = stackInstance.getName() + stackInstance.getVersion();
 
         logger.info("Creating POD {}", podName);
@@ -215,6 +253,8 @@ public class StackInstanceController {
                 .withNamespace(stackInstance.getNamespace())
             .endMetadata()
             .withEventTime(microTime)
+            .withFirstTimestamp(microTimeFormatter.format(ZonedDateTime.now()))
+            .withLastTimestamp(microTimeFormatter.format(ZonedDateTime.now()))
             .withReportingInstance("stack-instance-operator")
             .withReportingComponent("stack-instance-operator")
             .withAction("Update")
@@ -251,7 +291,7 @@ public class StackInstanceController {
         return false;
     }
 
-    private static ConfigMap createConfigMap(StackInstance stackInstance, KubernetesClient client) {
+    private static ConfigMap createOrReplace(StackInstance stackInstance, KubernetesClient client) {
         Resource<ConfigMap> configMapResource = client
                 .configMaps()
                 .inNamespace(stackInstance.getMetadata().getNamespace())
@@ -279,27 +319,6 @@ public class StackInstanceController {
 
     private static boolean theyAreDifferent(StackInstance oldResource, StackInstance newResource) {
         return !oldResource.getMetadata().getResourceVersion().equals(newResource.getMetadata().getResourceVersion());
-    }
-
-    private static void onUpdateHandle(StackInstance oldResource, StackInstance newResource, KubernetesClient client) {
-        logger.info("UPDATE {} - {}/{}",
-                oldResource.getMetadata().getSelfLink(),
-                oldResource.getMetadata().getResourceVersion(),
-                newResource.getMetadata().getResourceVersion());
-        logger.info("    [{} {}] {}", oldResource.getMetadata().getUid(), oldResource.getMetadata().getResourceVersion(), oldResource);
-        logger.info("    [{} {}] {}", newResource.getMetadata().getUid(), newResource.getMetadata().getResourceVersion(), newResource);
-    }
-
-    private static void onDeleteHandle(StackInstance stackInstance, KubernetesClient client) {
-        logger.info("DELETE {}", stackInstance.getMetadata().getSelfLink());
-
-        String namespace = stackInstance.getMetadata().getNamespace();
-
-        Boolean podDeleted = deletePod(client, stackInstance);
-        logger.info("POD {} exclusion : {}", stackInstance.getName(), podDeleted);
-
-        Boolean configMapDeleted = deleteConfigMap(client, stackInstance);
-        logger.info("ConfigMap {} exclusion : {}", stackInstance.getName(), configMapDeleted);
     }
 
     private static Boolean deleteConfigMap(KubernetesClient client, StackInstance stackInstance) {
