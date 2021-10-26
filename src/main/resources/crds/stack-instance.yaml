@@ -60,7 +60,11 @@ spec:
                   type: string
 
       subresources:
-        status: {}
+        status:
+          type: object
+          properties:
+            ready:
+              type: string
 
       additionalPrinterColumns:
         - jsonPath: .spec.stack.provider

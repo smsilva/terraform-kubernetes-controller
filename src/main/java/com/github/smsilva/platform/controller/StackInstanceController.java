@@ -3,7 +3,6 @@ package com.github.smsilva.platform.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.smsilva.platform.model.v1.StackInstance;
-import com.github.smsilva.platform.model.v1.StackInstanceList;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -14,12 +13,12 @@ import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static java.util.Collections.singletonMap;
 
 public class StackInstanceController {
 
@@ -58,8 +57,6 @@ public class StackInstanceController {
 
                 sharedInformerFactory.startAllRegisteredInformers();
 
-                logger.info("I'll sleep for 10 minutes (?)");
-
                 TimeUnit.MINUTES.sleep(10);
             } catch (Exception e) {
                 logger.error(e.getMessage());
@@ -69,50 +66,36 @@ public class StackInstanceController {
     }
 
     private static void onAddHandle(StackInstance stackInstance, KubernetesClient client) {
-        logger.info("ADD {}", stackInstance.getMetadata().getSelfLink());
-        logger.info("    {}", stackInstance);
+        logger.info("ADD {}", stackInstance);
 
-        reconcile(stackInstance, client);
-    }
-
-    private static void reconcile(StackInstance stackInstance, KubernetesClient client)  {
         try {
+            createEvent(stackInstance, client, "SyncStarted", "New Instance created.");
             ConfigMap configMap = createConfigMap(stackInstance, client);
-
-            createPod(stackInstance, client, configMap);
+            Pod pod = createPod(stackInstance, client, configMap);
+            createEvent(stackInstance, client, "PodCreated", pod.getMetadata().getName());
+            waitForComplete(client, pod);
+            updateConfigMap(stackInstance, client, pod);
+            delete(client, pod);
+            createEvent(stackInstance, client, "SyncDone", "Result here.");
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
     }
 
-    private static void createPod(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
-        String namespace = stackInstance.getNamespace();
-
-        EnvFromSource envFromSourceConfigMap = new EnvFromSourceBuilder()
-            .withNewConfigMapRef()
-            .withName(configMap.getMetadata().getName())
-            .endConfigMapRef()
-            .build();
-
-        EnvFromSource envFromSourceSecret = new EnvFromSourceBuilder()
-            .withNewSecretRef()
-            .withName(stackInstance.getSecretName())
-            .endSecretRef()
-            .build();
-
+    private static Pod createPod(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
         String podName = stackInstance.getName() + stackInstance.getVersion();
 
-        logger.info("podName: {}", podName);
+        logger.info("Creating POD {}", podName);
 
         client.pods()
-                .inNamespace(namespace)
-                .withLabels(Collections.singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
-                .delete();
+            .inNamespace(stackInstance.getNamespace())
+            .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
+            .delete();
 
         Pod pod = new PodBuilder()
             .withNewMetadata()
                 .withName(podName)
-                .withLabels(Collections.singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
+                .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
             .endMetadata()
             .withNewSpec()
                 .withRestartPolicy("OnFailure")
@@ -120,143 +103,129 @@ public class StackInstanceController {
                     .withName("output")
                     .withImage(stackInstance.getImage())
                     .withArgs("output", "-json")
-                    .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                    .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
                 .endContainer()
                 .addNewInitContainer()
                     .withName("apply")
                     .withImage(stackInstance.getImage())
                     .withArgs("apply", "-auto-approve", "-input=false", "-no-color")
-                    .withEnvFrom(envFromSourceSecret, envFromSourceConfigMap)
+                    .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
                 .endInitContainer()
             .endSpec()
             .build();
 
-        client.pods()
-            .inNamespace(namespace)
+        return client.pods()
+            .inNamespace(stackInstance.getNamespace())
             .createOrReplace(pod);
-
-        try {
-            logger.info("Waiting for POD Status becomes Completed");
-
-            client.pods()
-                .inNamespace(namespace)
-                .withName(pod.getMetadata().getName())
-                .waitUntilCondition(StackInstanceController::isCompleted, 1, TimeUnit.MINUTES);
-
-            String applyLog = client.pods()
-                    .inNamespace(namespace)
-                    .withName(podName)
-                    .inContainer("apply")
-                    .getLog();
-
-            logger.info("I'll try to retrieve Logs from output container at POD {}", pod.getMetadata().getName());
-
-            String outputLog = client.pods()
-                .inNamespace(namespace)
-                .withName(podName)
-                .inContainer("output")
-                .getLog();
-
-            ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
-                    .withNewMetadata()
-                        .withName(stackInstance.getName())
-                    .endMetadata()
-                    .addToData("apply.log", applyLog)
-                    .addToData("output.log", outputLog);
-
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-
-                JsonNode jsonObject = mapper.readTree(outputLog);
-
-                for (String key : stackInstance.getSpec().getOutputs()) {
-                    JsonNode jsonObjectOutput = jsonObject.get(key);
-                    JsonNode value = jsonObjectOutput.get("value");
-                    logger.info("  output_{}={}", key, value);
-                    configMapBuilder.addToData("output_" + key, value.textValue());
-                }
-
-            } catch (Exception e) {
-                logger.error(e.getMessage());
-            }
-
-            client
-                .configMaps()
-                .inNamespace(stackInstance.getNamespace())
-                .withName(stackInstance.getName())
-                .createOrReplace(configMapBuilder.build());
-
-            logger.info("Request POD {} exclusion", pod.getFullResourceName());
-
-            client.pods()
-                    .inNamespace(namespace)
-                    .withName(podName)
-                    .delete();
-
-            createEvent(stackInstance, client);
-
-            logger.info("Done");
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
     }
 
-    private static void createEvent(StackInstance stackInstance, KubernetesClient client) {
-        logger.info("stackInstance.getMetadata().getUid(): {}", stackInstance.getMetadata().getUid());
+    private static void delete(KubernetesClient client, Pod pod) {
+        logger.info("Request POD {} exclusion", pod.getMetadata().getName());
 
-        ObjectReference objectReference = new ObjectReferenceBuilder()
-                .withUid(stackInstance.getMetadata().getUid())
-                .withApiVersion(stackInstance.getApiVersion())
-                .withKind(stackInstance.getKind())
-                .withNamespace(stackInstance.getNamespace())
+        client.pods()
+            .inNamespace(pod.getMetadata().getNamespace())
+            .withName(pod.getMetadata().getName())
+            .delete();
+    }
+
+    private static void waitForComplete(KubernetesClient client, Pod pod) {
+        logger.info("Waiting for POD Status becomes Completed: {}", pod.getFullResourceName());
+
+        client.pods()
+            .inNamespace(pod.getMetadata().getNamespace())
+            .withName(pod.getMetadata().getName())
+            .waitUntilCondition(StackInstanceController::isCompleted, 1, TimeUnit.MINUTES);
+    }
+
+    private static void updateConfigMap(StackInstance stackInstance, KubernetesClient client, Pod createdPod) throws Exception {
+        String applyLog = getLog(client, createdPod, "apply");
+        String outputLog = getLog(client, createdPod, "output");
+
+        ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
+            .withNewMetadata()
                 .withName(stackInstance.getName())
-                .build();
+            .endMetadata()
+            .addToData("apply.log", applyLog)
+            .addToData("output.log", outputLog);
 
-        logger.info("objectReference: {}", objectReference);
+        for (String key : stackInstance.getSpec().getOutputs()) {
+            JsonNode value = new ObjectMapper()
+                    .readTree(outputLog)
+                    .get(key)
+                    .get("value");
 
-        try {
-            String eventNameWithUUID = stackInstance.getName() + "_" +  UUID.randomUUID();
+            configMapBuilder.addToData("output_" + key, value.textValue());
 
-            logger.info("Creating Event {}", eventNameWithUUID);
-
-            ZonedDateTime zonedDateTime = ZonedDateTime.now();
-            LocalDateTime localDateTime = LocalDateTime.now();
-
-            logger.info("zonedDateTime: {}", zonedDateTime);
-            logger.info("localDateTime: {}", localDateTime);
-
-            final DateTimeFormatter microTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSSSSXXX");
-
-            MicroTime microTime = new MicroTimeBuilder()
-                    .withTime(microTimeFormatter.format(zonedDateTime))
-                    .build();
-
-            logger.info("microTime: {}", microTime);
-
-            Event reconcileEvent = new EventBuilder()
-                    .withInvolvedObject(objectReference)
-                    .withNewMetadata()
-                        .withName(eventNameWithUUID)
-                        .withNamespace(stackInstance.getNamespace())
-                    .endMetadata()
-                    .withEventTime(microTime)
-                    .withReportingInstance("ReportInstance")
-                    .withReportingComponent("ComponentReporting")
-                    .withAction("Update")
-                    .withType("Normal")
-                    .withReason("Reconciled")
-                    .withMessage("This is the event message: " + eventNameWithUUID)
-                    .build();
-
-            Event createdEvent = client.v1()
-                    .events()
-                    .createOrReplace(reconcileEvent);
-
-            logger.info("createdEvent: {}", createdEvent);
-        } catch (Exception e) {
-            logger.error("Error creating event {}", e.getMessage());
-            e.printStackTrace();
+            logger.info("output :: {}={}", key, value);
         }
+
+        client.configMaps()
+            .inNamespace(stackInstance.getNamespace())
+            .withName(stackInstance.getName())
+            .createOrReplace(configMapBuilder.build());
+    }
+
+    private static EnvFromSource getEnvFromSource(StackInstance stackInstance) {
+        return new EnvFromSourceBuilder()
+            .withNewSecretRef()
+            .withName(stackInstance.getSecretName())
+            .endSecretRef()
+            .build();
+    }
+
+    private static EnvFromSource getEnvFromSource(ConfigMap configMap) {
+        return new EnvFromSourceBuilder()
+            .withNewConfigMapRef()
+            .withName(configMap.getMetadata().getName())
+            .endConfigMapRef()
+            .build();
+    }
+
+    private static String getLog(KubernetesClient client, Pod pod, String containerName) {
+        return client.pods()
+            .inNamespace(pod.getMetadata().getNamespace())
+            .withName(pod.getMetadata().getName())
+            .inContainer(containerName)
+            .getLog();
+    }
+
+    private static Event createEvent(StackInstance stackInstance, KubernetesClient client, String reason, String message) throws Exception {
+        ObjectReference objectReference = new ObjectReferenceBuilder()
+            .withUid(stackInstance.getMetadata().getUid())
+            .withApiVersion(stackInstance.getApiVersion())
+            .withKind(stackInstance.getKind())
+            .withNamespace(stackInstance.getNamespace())
+            .withName(stackInstance.getName())
+            .build();
+
+        String eventNameWithUUID = stackInstance.getName() + "_" +  UUID.randomUUID();
+
+        logger.info("Creating Event {}", eventNameWithUUID);
+
+        final DateTimeFormatter microTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSSSSXXX");
+
+        MicroTime microTime = new MicroTimeBuilder()
+            .withTime(microTimeFormatter.format(ZonedDateTime.now()))
+            .build();
+
+        Event reconcileEvent = new EventBuilder()
+            .withInvolvedObject(objectReference)
+            .withNewMetadata()
+                .withName(eventNameWithUUID)
+                .withNamespace(stackInstance.getNamespace())
+            .endMetadata()
+            .withEventTime(microTime)
+            .withReportingInstance("stack-instance-operator")
+            .withReportingComponent("stack-instance-operator")
+            .withAction("Update")
+            .withType("Normal")
+            .withReason(reason)
+            .withMessage(message)
+            .build();
+
+        return client.v1()
+            .events()
+            .createOrReplace(reconcileEvent);
     }
 
     private static boolean isCompleted(Pod pod) {
@@ -319,8 +288,6 @@ public class StackInstanceController {
                 newResource.getMetadata().getResourceVersion());
         logger.info("    [{} {}] {}", oldResource.getMetadata().getUid(), oldResource.getMetadata().getResourceVersion(), oldResource);
         logger.info("    [{} {}] {}", newResource.getMetadata().getUid(), newResource.getMetadata().getResourceVersion(), newResource);
-
-        reconcile(newResource, client);
     }
 
     private static void onDeleteHandle(StackInstance stackInstance, KubernetesClient client) {
@@ -346,7 +313,7 @@ public class StackInstanceController {
     private static Boolean deletePod(KubernetesClient client, StackInstance stackInstance) {
         return client.pods()
                 .inNamespace(stackInstance.getNamespace())
-                .withLabels(Collections.singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
+                .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
                 .delete();
     }
 
