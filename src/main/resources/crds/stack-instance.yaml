@@ -53,18 +53,8 @@ spec:
                   items:
                     type: string
 
-            status:
-              type: object
-              properties:
-                ready:
-                  type: string
-
       subresources:
-        status:
-          type: object
-          properties:
-            ready:
-              type: string
+        status: {}
 
       additionalPrinterColumns:
         - jsonPath: .spec.stack.provider

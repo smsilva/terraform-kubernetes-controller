@@ -100,11 +100,11 @@ public class StackInstanceController {
 
             Pod pod = createOrReplace(stackInstance, client, configMap);
 
-            createEvent(stackInstance, client, "PodExecutuonStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
+            createEvent(stackInstance, client, "TerraformApplyStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
 
             waitForCompleteCondition(client, pod);
 
-            createEvent(stackInstance, client, "PodExecutuonCompleted", reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
+            createEvent(stackInstance, client, "TerraformApplyCompleted", reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
 
             updateConfigMap(stackInstance, client, pod);
 
