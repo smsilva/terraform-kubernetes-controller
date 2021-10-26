@@ -102,7 +102,7 @@ public class StackInstanceController {
 
             createEvent(stackInstance, client, "PodExecutuonStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
 
-            waitForComplete(client, pod);
+            waitForCompleteCondition(client, pod);
 
             createEvent(stackInstance, client, "PodExecutuonCompleted", reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
 
@@ -119,15 +119,16 @@ public class StackInstanceController {
     }
 
     private static Pod createOrReplace(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
-        String podName = stackInstance.getName() + stackInstance.getVersion();
-
         client.pods()
             .inNamespace(stackInstance.getNamespace())
             .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
             .delete();
 
+        String podName = stackInstance.getName() + "-" + UUID.randomUUID().toString().substring(0, 6);
+
         Pod pod = new PodBuilder()
             .withNewMetadata()
+                .withGenerateName(stackInstance.getName())
                 .withName(podName)
                 .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
             .endMetadata()
@@ -148,7 +149,6 @@ public class StackInstanceController {
             .endSpec()
             .build();
 
-
         Pod createdPod = client.pods()
                 .inNamespace(stackInstance.getNamespace())
                 .createOrReplace(pod);
@@ -167,7 +167,7 @@ public class StackInstanceController {
             .delete();
     }
 
-    private static void waitForComplete(KubernetesClient client, Pod pod) {
+    private static void waitForCompleteCondition(KubernetesClient client, Pod pod) {
         logger.info("Waiting for POD Status becomes Completed: {}", pod.getFullResourceName());
 
         client.pods()
@@ -237,7 +237,7 @@ public class StackInstanceController {
             .withName(stackInstance.getName())
             .build();
 
-        String eventName = stackInstance.getName() + "-" + name + "-" + UUID.randomUUID();
+        String eventName = stackInstance.getName() + "-" + name;
 
         final DateTimeFormatter microTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSSSSXXX");
 
@@ -263,6 +263,8 @@ public class StackInstanceController {
             .withMessage(message)
             .build();
 
+        client.v1().events().delete(event);
+
         Event createdEvent = client.v1()
             .events()
             .createOrReplace(event);
@@ -276,18 +278,20 @@ public class StackInstanceController {
 
     private static boolean isCompleted(Pod pod) {
         List<ContainerStatus> containerStatuses = pod
-                .getStatus()
-                .getContainerStatuses();
+            .getStatus()
+            .getContainerStatuses();
 
         for (ContainerStatus containerStatus : containerStatuses) {
-            logger.info("{} :: state :: {}",
+            logger.info("Pod = {} :: container = {} :: state = {}",
+                    pod.getMetadata().getName(),
                     containerStatus.getName(),
-                    containerStatus.getState());
+                    getLogFrom(containerStatus));
 
             if (containerStatus.getState().getTerminated() != null) {
-                logger.info("{} :: state :: TERMINATED :: reason: {}",
+                logger.info("Pod = {} :: container = {} :: state = Completed :: exitCode: {}",
+                        pod.getMetadata().getName(),
                         containerStatus.getName(),
-                        containerStatus.getState().getTerminated().getReason());
+                        containerStatus.getState().getTerminated().getExitCode());
 
                 if (containerStatus.getState().getTerminated().getReason().equals("Completed")) {
                     return true;
@@ -295,6 +299,24 @@ public class StackInstanceController {
             }
         }
         return false;
+    }
+
+    private static String getLogFrom(ContainerStatus containerStatus) {
+        ContainerState containerState = containerStatus.getState();
+
+        if (containerState.getTerminated() != null) {
+            return containerState.getTerminated().getReason();
+        }
+
+        if (containerState.getRunning() != null) {
+            return "Running";
+        }
+
+        if (containerState.getWaiting() != null) {
+            return containerState.getWaiting().getReason();
+        }
+
+        return containerState.toString();
     }
 
     private static ConfigMap createOrReplace(StackInstance stackInstance, KubernetesClient client) {
