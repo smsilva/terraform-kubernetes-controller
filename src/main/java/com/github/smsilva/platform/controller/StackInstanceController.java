@@ -96,11 +96,9 @@ public class StackInstanceController {
             createEvent(stackInstance, client, "ReconciliationStart", reason, "Terraform reconciliation started");
 
             ConfigMap configMap = createOrReplace(stackInstance, client);
-
             createEvent(stackInstance, client, "ConfigMapCreation", reason, "ConfigMap created: " + configMap.getMetadata().getName());
 
             Pod pod = createOrReplace(stackInstance, client, configMap);
-
             createEvent(stackInstance, client, "TerraformApplyStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
 
             waitForCompleteCondition(client, pod);
@@ -115,29 +113,27 @@ public class StackInstanceController {
 
             createEvent(stackInstance, client, "ReconciliationDone", reason, "Creation completed.");
 
-            MixedOperation<StackInstance, StackInstanceList, Resource<StackInstance>> resources = client.resources(StackInstance.class, StackInstanceList.class);
-            StackInstance currentStackInstance = resources
-                    .inNamespace(stackInstance.getNamespace())
-                    .withName(stackInstance.getName())
-                    .get();
-
-            logger.info("currentStackInstance={}", currentStackInstance);
-
-            StackInstanceStatus stackInstanceStatus = new StackInstanceStatus();
-            stackInstanceStatus.setReady("READY");
-
-            currentStackInstance.setStatus(stackInstanceStatus);
-
-            logger.info("currentStackInstance={}", currentStackInstance);
-
-            StackInstance instance = resources.createOrReplace(currentStackInstance);
-
-            logger.info("instance={}", currentStackInstance);
+            updateStackInstanceStatusAsReady(stackInstance, client);
 
             createEvent(stackInstance, client, "Update", reason, "Status Updated.");
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
+    }
+
+    private static StackInstance updateStackInstanceStatusAsReady(StackInstance stackInstance, KubernetesClient client) {
+        MixedOperation<StackInstance, StackInstanceList, Resource<StackInstance>> resources = client.resources(StackInstance.class, StackInstanceList.class);
+        StackInstance currentStackInstance = resources
+                .inNamespace(stackInstance.getNamespace())
+                .withName(stackInstance.getName())
+                .get();
+
+        StackInstanceStatus stackInstanceStatus = new StackInstanceStatus();
+        stackInstanceStatus.setReady("READY");
+
+        currentStackInstance.setStatus(stackInstanceStatus);
+
+        return resources.createOrReplace(currentStackInstance);
     }
 
     private static Pod createOrReplace(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {

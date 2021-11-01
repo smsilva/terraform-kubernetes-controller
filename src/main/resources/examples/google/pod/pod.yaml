@@ -12,7 +12,7 @@ spec:
         - secretRef:
             name: google-credentials
         - configMapRef:
-            name: google-example
+            name: generic-bucket-1
       env:
         - name: DEBUG
           value: "1"
@@ -24,8 +24,5 @@ spec:
         - secretRef:
             name: google-credentials
         - configMapRef:
-            name: google-example
-      env:
-        - name: DEBUG
-          value: "0"
+            name: generic-bucket-1
   restartPolicy: OnFailure
