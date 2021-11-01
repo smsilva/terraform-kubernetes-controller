@@ -7,12 +7,9 @@
 scripts/create-kind-cluster
 ```
 
-## Create ARM Secret manually
+## Create Terraform Providers Secrets manually
 
 ```bash
-# Configuring the Service Principal in Terraform
-# https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret#configuring-the-service-principal-in-terraform
-scripts/create-azure-secret
 scripts/create-google-secret
 ```
 
@@ -26,11 +23,11 @@ watch -n 3 scripts/show_stack_instances_information
 scripts/install-crd-and-create-a-new-stack-instance-object
 
 # Retrieve apply and output logs
-kubectl get cm africa-1 -o json | jq '.data."apply.log"' -r
-kubectl get cm africa-1 -o json | jq '.data."output.log"' -r
+kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."apply.log"' -r
+kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."output.log"' -r
 
-# Test using Helm
-helm template src/main/resources/examples/stack-instances | kubectl apply -f -
+# Tests using Helm
+helm template src/main/resources/examples/google/helm-chart | kubectl apply -f -
 ```
 
 ## Build and Install terraform-controller
@@ -40,25 +37,7 @@ helm template src/main/resources/examples/stack-instances | kubectl apply -f -
 watch -n 3 scripts/show_terraform_controller_and_stack_instances_information
 
 # Terminal [2]: Build and Deploy terraform-controller
-./build-and-install-terraform-controller
-```
-
-## Scenario
-
-```bash
-wasp platform instance create \
-  --name "africa-1" \
-  --region "southafrica" \
-  --provider "azure"
-
-wasp platform instance list
-
-wasp cluster create \
-  --platform-instance "africa-1" \
-  --ingress-cname "wasp-services"
-  --name "k8s-green" \
-  --version "1.20.7" \
-
+scripts/build_and_install_terraform_controller
 ```
 
 ## Cleanup
