@@ -5,8 +5,10 @@ kubectl apply -f src/main/resources/crds/stack-instance.yaml
 
 sleep 3
 
+kubectl delete Pod            --all &> /dev/null
+
 kubectl delete StackInstances --all &> /dev/null
 
 kubectl delete Events         --all &> /dev/null
 
-helm template src/main/resources/examples/stack-instances | kubectl apply -f -
+helm template src/main/resources/examples/google/helm-chart | kubectl apply -f -

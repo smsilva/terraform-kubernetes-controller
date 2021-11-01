@@ -11,7 +11,7 @@ show_line() {
   echo ""
 }
 
-show_line "StackInstance Objects"     "kubectl get StackInstance --show-labels"
+show_line "StackInstance Objects"     "kubectl get StackInstance"
 #show_line "StackInstance ConfigMap"   "kubectl get ConfigMap africa-1"
 #show_line "StackInstance POD"         "kubectl get Pod --show-labels"
 #show_line "Container APPLY  logs"     "kubectl logs -l stack-instance-name=africa-1 -c apply  --tail 10"

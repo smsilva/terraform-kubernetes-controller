@@ -129,7 +129,7 @@ public class StackInstanceController {
                 .get();
 
         StackInstanceStatus stackInstanceStatus = new StackInstanceStatus();
-        stackInstanceStatus.setReady("READY");
+        stackInstanceStatus.setReady("HEALTHY");
 
         currentStackInstance.setStatus(stackInstanceStatus);
 
@@ -152,18 +152,18 @@ public class StackInstanceController {
             .endMetadata()
             .withNewSpec()
                 .withRestartPolicy("OnFailure")
-                .addNewContainer()
-                    .withName("output")
-                    .withImage(stackInstance.getImage())
-                    .withArgs("output", "-json")
-                    .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
-                .endContainer()
                 .addNewInitContainer()
                     .withName("apply")
                     .withImage(stackInstance.getImage())
                     .withArgs("apply", "-auto-approve", "-input=false", "-no-color")
                     .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
                 .endInitContainer()
+                .addNewContainer()
+                    .withName("output")
+                    .withImage(stackInstance.getImage())
+                    .withArgs("output", "-json")
+                    .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
+                .endContainer()
             .endSpec()
             .build();
 
