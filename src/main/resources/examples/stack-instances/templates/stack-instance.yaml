@@ -6,13 +6,13 @@ metadata:
   name: {{ $instance.name }}
 spec:
   stack:
-    provider: azure
+    provider: google
     registry: docker.io/silviosilva
-    image: example
+    image: bucket
     version: 0.1.0
   vars:
-    region: {{ $instance.region }}
+    name: {{ $instance.name }}
+    location: {{ $instance.location }}
   outputs:
-    - name
-    - id
+    - bucket_id
 {{- end }}

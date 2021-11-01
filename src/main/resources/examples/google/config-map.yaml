@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: google-example
+  namespace: default
+data:
+  STACK_INSTANCE_NAME: blue
+  TF_VAR_name: generic-bucket-1
+  TF_VAR_location: southamerica-east1

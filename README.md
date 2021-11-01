@@ -13,6 +13,7 @@ scripts/create-kind-cluster
 # Configuring the Service Principal in Terraform
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret#configuring-the-service-principal-in-terraform
 scripts/create-azure-secret
+scripts/create-google-secret
 ```
 
 ## Install Stack Instance CRD and Deploy a New Stack Instance Object
