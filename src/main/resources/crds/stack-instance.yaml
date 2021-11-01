@@ -53,8 +53,12 @@ spec:
                   items:
                     type: string
 
-      subresources:
-        status: {}
+            status:
+              type: object
+              properties:
+                ready:
+                  type: string
+                  default: "NOT READY"
 
       additionalPrinterColumns:
         - jsonPath: .spec.stack.provider
@@ -77,9 +81,9 @@ spec:
           name: Outputs
           type: string
 
-        - name: Age
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
           type: date
-          jsonPath: .metadata.creationTimestamp
 
         - jsonPath: .status.ready
           name: Status

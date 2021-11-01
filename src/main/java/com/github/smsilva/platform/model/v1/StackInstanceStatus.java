@@ -2,17 +2,17 @@ package com.github.smsilva.platform.model.v1;
 
 public class StackInstanceStatus {
 
-    private Boolean ready;
+    private String ready;
 
     public StackInstanceStatus() {
-        this.ready = false;
+        this.ready = "false";
     }
 
-    public Boolean getReady() {
+    public String getReady() {
         return ready;
     }
 
-    public void setReady(Boolean ready) {
+    public void setReady(String ready) {
         this.ready = ready;
     }
 

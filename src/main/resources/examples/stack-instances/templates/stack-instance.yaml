@@ -15,4 +15,6 @@ spec:
     location: {{ $instance.location }}
   outputs:
     - bucket_id
+status:
+  ready: "not_ready"
 {{- end }}

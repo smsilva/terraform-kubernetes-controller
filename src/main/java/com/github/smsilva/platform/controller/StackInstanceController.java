@@ -2,10 +2,11 @@ package com.github.smsilva.platform.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.smsilva.platform.model.v1.StackInstance;
+import com.github.smsilva.platform.model.v1.*;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
@@ -113,6 +114,27 @@ public class StackInstanceController {
             delete(client, pod);
 
             createEvent(stackInstance, client, "ReconciliationDone", reason, "Creation completed.");
+
+            MixedOperation<StackInstance, StackInstanceList, Resource<StackInstance>> resources = client.resources(StackInstance.class, StackInstanceList.class);
+            StackInstance currentStackInstance = resources
+                    .inNamespace(stackInstance.getNamespace())
+                    .withName(stackInstance.getName())
+                    .get();
+
+            logger.info("currentStackInstance={}", currentStackInstance);
+
+            StackInstanceStatus stackInstanceStatus = new StackInstanceStatus();
+            stackInstanceStatus.setReady("READY");
+
+            currentStackInstance.setStatus(stackInstanceStatus);
+
+            logger.info("currentStackInstance={}", currentStackInstance);
+
+            StackInstance instance = resources.createOrReplace(currentStackInstance);
+
+            logger.info("instance={}", currentStackInstance);
+
+            createEvent(stackInstance, client, "Update", reason, "Status Updated.");
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
