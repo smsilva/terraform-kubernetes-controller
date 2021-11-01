@@ -23,11 +23,14 @@ watch -n 3 scripts/show_stack_instances_information
 scripts/install-crd-and-create-a-new-stack-instance-object
 
 # Retrieve apply and output logs
-kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."apply.log"' -r
+kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."apply.log"'  -r
 kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."output.log"' -r
 
 # Tests using Helm
 helm template src/main/resources/examples/google/helm-chart | kubectl apply -f -
+
+# Check Stack Instances Created
+kubectl get StackInstances
 ```
 
 ## Build and Install terraform-controller
