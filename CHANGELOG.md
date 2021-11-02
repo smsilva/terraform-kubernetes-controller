@@ -1,3 +1,9 @@
+## 0.2.0 (2021-11-02)
+
+### Feat
+
+- **helm-chart**: Adding a Helm Chart to Install the Controller
+
 ## 0.1.0 (2021-11-01)
 
 ### Feat

@@ -14,14 +14,3 @@ docker build \
 
 docker push "${CONTROLLER_IMAGE?}"
 docker push "${CONTROLLER_IMAGE_LATEST?}"
-
-# Remove Controller Resources if it already exists
-kubectl delete -f src/main/resources/deployment/terraform-controller &> /dev/null
-
-# Deploy the Controller
-kubectl apply -f src/main/resources/deployment/terraform-controller
-
-# Wait some seconds to start to follow the logs
-kubectl wait deploy terraform-controller \
-  --for condition=Available \
-  --timeout 320s
