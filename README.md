@@ -15,6 +15,29 @@ scripts/create-google-secret
 
 ## Install Stack Instance CRD and Deploy a New Stack Instance Object
 
+### Using Helm
+
+```bash
+helm repo add terraform-controller https://smsilva.github.io/helm/
+
+helm repo list
+
+helm repo update
+
+helm install terraform-controller terraform-controller/terraform-controller
+
+kubectl wait \
+  deployment terraform-controller \
+  --for=condition=Available \
+  --timeout=360s
+
+helm list
+
+
+```
+
+### From this repository
+
 ```bash
 # Terminal [1]: Watch Stack Instance Information
 watch -n 3 scripts/show_stack_instances_information

@@ -1,16 +1,17 @@
 #!/bin/bash
-mvn clean package
-
 CONTROLLER_IMAGE_NAME="silviosilva/terraform-kubernetes-controller"
 CONTROLLER_VERSION=$(grep "version:" cz.yaml | awk '{ print $2 }' | tr -d " ")
 
 CONTROLLER_IMAGE="${CONTROLLER_IMAGE_NAME?}:${CONTROLLER_VERSION?}"
 CONTROLLER_IMAGE_LATEST="${CONTROLLER_IMAGE_NAME?}:latest"
 
+# TODO: Update Helm Chart Version too
+# Update Project Version into Maven pom.xml file
+mvn versions:set versions:commit -DnewVersion="${CONTROLLER_VERSION?}" && \
+mvn package && \
 docker build \
   --rm \
   --tag "${CONTROLLER_IMAGE?}" \
-  --tag "${CONTROLLER_IMAGE_LATEST?}" .
-
-docker push "${CONTROLLER_IMAGE?}"
+  --tag "${CONTROLLER_IMAGE_LATEST?}" . && \
+docker push "${CONTROLLER_IMAGE?}" && \
 docker push "${CONTROLLER_IMAGE_LATEST?}"
