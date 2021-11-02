@@ -1,0 +1,6 @@
+name: terraform-controller
+
+image:
+  repository: docker.io/silviosilva/terraform-kubernetes-controller
+  pullPolicy: IfNotPresent
+  tag: ""
