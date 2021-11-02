@@ -1,3 +1,9 @@
+## 0.2.1 (2021-11-02)
+
+### Fix
+
+- **controller**: Fix log message to show when the controller becomes ready
+
 ## 0.2.0 (2021-11-02)
 
 ### Feat
