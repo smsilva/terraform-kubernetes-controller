@@ -30,7 +30,6 @@ public class StackInstanceController {
         logger.info("Starting...");
 
         try (KubernetesClient client = new DefaultKubernetesClient()) {
-
             SharedInformerFactory sharedInformerFactory = client.informers();
 
             SharedIndexInformer<StackInstance> sharedIndexInformer = sharedInformerFactory
@@ -56,6 +55,8 @@ public class StackInstanceController {
             });
 
             sharedInformerFactory.startAllRegisteredInformers();
+
+            logger.info("Started");
 
             TimeUnit.DAYS.sleep(1000);
         } catch (Exception e) {
