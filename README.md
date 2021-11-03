@@ -4,13 +4,13 @@
 
 ```bash
 # Create a Kind Cluster (it should take less than 2 minutes)
-scripts/create-kind-cluster
+scripts/create_kind_cluster
 ```
 
 ## Create Terraform Providers Secrets manually
 
 ```bash
-scripts/create-google-secret
+scripts/create_google_secret
 ```
 
 ## Install Stack Instance CRD and Deploy a New Stack Instance Object
