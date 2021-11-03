@@ -78,7 +78,11 @@ public class StackInstanceController {
         logger.info("    [{} {}] {}", oldResource.getMetadata().getUid(), oldResource.getMetadata().getResourceVersion(), oldResource);
         logger.info("    [{} {}] {}", newResource.getMetadata().getUid(), newResource.getMetadata().getResourceVersion(), newResource);
 
-        reconcile(newResource, client, "Update");
+        if (!oldResource.toString().equals(newResource.toString())) {
+            reconcile(newResource, client, "Update");
+        } else {
+            logger.info("I'll not run reconcile.");
+        }
     }
 
     private static void onDeleteHandle(StackInstance stackInstance, KubernetesClient client) {
@@ -99,7 +103,15 @@ public class StackInstanceController {
             ConfigMap configMap = createOrReplace(stackInstance, client);
             createEvent(stackInstance, client, "ConfigMapCreation", reason, "ConfigMap created: " + configMap.getMetadata().getName());
 
-            Pod pod = createOrReplace(stackInstance, client, configMap);
+            String[] commands = null;
+
+            if ("Delete".equals(reason)) {
+                commands = new String[]{"destroy", "-auto-approve", "-no-color"};
+            } else {
+                commands = new String[]{"apply", "-auto-approve", "-no-color"};
+            }
+
+            Pod pod = createOrReplace(stackInstance, client, configMap, commands);
             createEvent(stackInstance, client, "TerraformApplyStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
 
             waitForCompleteCondition(client, pod);
@@ -137,7 +149,7 @@ public class StackInstanceController {
         return resources.createOrReplace(currentStackInstance);
     }
 
-    private static Pod createOrReplace(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap) throws Exception {
+    private static Pod createOrReplace(StackInstance stackInstance, KubernetesClient client, ConfigMap configMap, String[] commands) throws Exception {
         client.pods()
             .inNamespace(stackInstance.getNamespace())
             .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
@@ -146,17 +158,17 @@ public class StackInstanceController {
         String podName = stackInstance.getName() + "-" + UUID.randomUUID().toString().substring(0, 6);
 
         Pod pod = new PodBuilder()
-            .withNewMetadata()
+                .withNewMetadata()
                 .withGenerateName(stackInstance.getName())
                 .withName(podName)
                 .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
-            .endMetadata()
-            .withNewSpec()
+                .endMetadata()
+                .withNewSpec()
                 .withRestartPolicy("OnFailure")
                 .addNewInitContainer()
-                    .withName("apply")
-                    .withImage(stackInstance.getImage())
-                    .withArgs("apply", "-auto-approve", "-input=false", "-no-color")
+                .withName("apply")
+                .withImage(stackInstance.getImage())
+                .withArgs(commands)
                     .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
                 .endInitContainer()
                 .addNewContainer()

@@ -1,6 +1,5 @@
 package com.github.smsilva.platform.model.v1;
 
-import io.fabric8.kubernetes.api.model.KubernetesResource;
 import io.fabric8.kubernetes.api.model.Namespaced;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.model.annotation.Group;
@@ -18,8 +17,7 @@ public class StackInstance extends CustomResource<StackInstanceSpec, StackInstan
     @Override
     public String toString() {
         return "PlatformInstance{" +
-                "spec=" + spec + ", " +
-                "status=" + status +
+                "spec=" + spec + "" +
                 '}';
     }
 
@@ -52,4 +50,8 @@ public class StackInstance extends CustomResource<StackInstanceSpec, StackInstan
         return this.getProvider() + "-" + "credentials";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
 }

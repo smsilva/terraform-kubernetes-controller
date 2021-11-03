@@ -33,7 +33,7 @@ kubectl wait \
 
 helm list
 
-
+kubectl logs -f -l app=terraform-controller
 ```
 
 ### From this repository
