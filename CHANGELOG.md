@@ -1,3 +1,9 @@
+## 0.3.0 (2021-11-02)
+
+### Feat
+
+- **stack-instance-delete**: Stack Instance Exclusion now is replicated by controller
+
 ## 0.2.1 (2021-11-02)
 
 ### Fix

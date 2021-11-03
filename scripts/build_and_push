@@ -7,11 +7,15 @@ CONTROLLER_IMAGE_LATEST="${CONTROLLER_IMAGE_NAME?}:latest"
 
 # TODO: Update Helm Chart Version too
 # Update Project Version into Maven pom.xml file
-mvn versions:set versions:commit -DnewVersion="${CONTROLLER_VERSION?}" && \
+#mvn versions:set versions:commit -DnewVersion="${CONTROLLER_VERSION?}" && \
+
+sed -i "/^appVersion:/ s/appVersion.*/appVersion: ${CONTROLLER_VERSION?}/" manifests/charts/terraform-controller/Chart.yaml
+
 mvn package && \
 docker build \
   --rm \
   --tag "${CONTROLLER_IMAGE?}" \
   --tag "${CONTROLLER_IMAGE_LATEST?}" . && \
+
 docker push "${CONTROLLER_IMAGE?}" && \
 docker push "${CONTROLLER_IMAGE_LATEST?}"

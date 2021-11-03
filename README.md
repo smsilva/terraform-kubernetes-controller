@@ -18,14 +18,9 @@ scripts/create-google-secret
 ### Using Helm
 
 ```bash
-helm repo add terraform-controller https://smsilva.github.io/helm/
-
-helm repo list
-
-helm repo update
-
-helm install terraform-controller terraform-controller/terraform-controller
-
+helm repo add terraform-controller https://smsilva.github.io/helm/ && \
+helm repo update && \
+helm install terraform-controller terraform-controller/terraform-controller && \
 kubectl wait \
   deployment terraform-controller \
   --for=condition=Available \
@@ -33,6 +28,11 @@ kubectl wait \
 
 helm list
 
+# Terminal [1]
+watch -n 3 'kubectl get si,pods'
+
+# Terminal [2]
+helm template manifests/charts/google-bucket | kubectl apply -f -
 kubectl logs -f -l app=terraform-controller
 ```
 
@@ -50,7 +50,7 @@ kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."apply.log"'  -r
 kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."output.log"' -r
 
 # Tests using Helm
-helm template src/main/resources/examples/google/helm-chart | kubectl apply -f -
+helm template manifests/charts/google-bucket | kubectl apply -f -
 
 # Check Stack Instances Created
 kubectl get StackInstances
