@@ -7,9 +7,10 @@ metadata:
 spec:
   stack:
     provider: google
-    registry: docker.io/silviosilva
-    image: bucket
-    version: 0.1.0
+    backend: gcs
+    image: silviosilva/google-bucket
+    version: 0.3.1
+    registry: docker.io
   vars:
     name: {{ $instance.name }}
     location: {{ $instance.location }}

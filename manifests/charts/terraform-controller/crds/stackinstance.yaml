@@ -29,18 +29,30 @@ spec:
                   properties:
                     provider:
                       type: string
-                      default: azure
-                      description: "Stack Base Image Name Prefix. Example: azure"
+                      default: azurerm
+                      description: "Terraform Provider. Example: google"
+                      enum:
+                        - aws
+                        - azurerm
+                        - google
+                    backend:
+                      type: string
+                      default: azurerm
+                      description: "Terraform Backend. Example: azurerm"
+                      enum:
+                        - azurerm
+                        - gcs
+                        - s3
                     registry:
                       type: string
                       default: azure
-                      description: "Container Registry and User/Namespaces. Example: docker.io/silviosilva"
+                      description: "Container Registry. Example: docker.io"
                     image:
                       type: string
-                      description: "Stack Base Image Name. It'll be concatenated with provider to define the final image Name. Example: provider: azure image:dummy-stack final-image-name: azure-dummy-stack"
+                      description: "Stack Base Image Name. Example: silviosilva/google-bucket"
                     version:
                       type: string
-                      description: "Stack Base Image Version. Example: 0.1.0"
+                      description: "Stack Base Image Version. Example: 0.3.1"
 
                 vars:
                   type: object
@@ -63,6 +75,10 @@ spec:
       additionalPrinterColumns:
         - jsonPath: .spec.stack.provider
           name: Provider
+          type: string
+
+        - jsonPath: .spec.stack.backend
+          name: Backend
           type: string
 
         - jsonPath: .spec.stack.image
