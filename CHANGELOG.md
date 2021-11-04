@@ -1,3 +1,9 @@
+## 0.3.1 (2021-11-04)
+
+### Fix
+
+- **crd**: Scripts was moved to development folder. StackInstance version was fixed to Kubernetes pattern v1alpha1
+
 ## 0.3.0 (2021-11-02)
 
 ### Feat
