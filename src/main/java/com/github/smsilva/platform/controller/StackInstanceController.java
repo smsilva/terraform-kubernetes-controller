@@ -157,19 +157,21 @@ public class StackInstanceController {
 
         String podName = stackInstance.getName() + "-" + UUID.randomUUID().toString().substring(0, 6);
 
+        EnvFromSource[] envFromSources = {getEnvFromSource(stackInstance), getEnvFromSource(configMap)};
+
         Pod pod = new PodBuilder()
-                .withNewMetadata()
+            .withNewMetadata()
                 .withGenerateName(stackInstance.getName())
                 .withName(podName)
                 .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
-                .endMetadata()
-                .withNewSpec()
+            .endMetadata()
+            .withNewSpec()
                 .withRestartPolicy("OnFailure")
                 .addNewInitContainer()
-                .withName("apply")
-                .withImage(stackInstance.getImage())
-                .withArgs(commands)
-                    .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
+                    .withName("apply")
+                    .withImage(stackInstance.getImage())
+                    .withArgs(commands)
+                    .withEnvFrom(envFromSources)
                 .endInitContainer()
                 .addNewContainer()
                     .withName("output")

@@ -3,32 +3,11 @@
 ## Setup
 
 ```bash
-scripts/development/create_kind_cluster
-```
-
-## Create Terraform Providers Secrets manually
-
-```bash
-scripts/development/create_google_secret
-```
-
-## Install Stack Instance CRD and Deploy a New Stack Instance Object
-
-### Using Helm
-
-```bash
-helm repo add terraform-controller https://smsilva.github.io/helm/ && \
-
-helm repo update && \
-
-helm install terraform-controller terraform-controller/terraform-controller && \
-
-kubectl wait \
-  deployment terraform-controller \
-  --for=condition=Available \
-  --timeout=360s
-
 # Terminal [1]
+scripts/development/create_kind_cluster && \
+
+scripts/development/create_google_secret && \
+
 watch -n 3 scripts/development/show_stack_instances_information
 
 # Terminal [2]
@@ -60,7 +39,7 @@ kubectl get StackInstances
 ## Cleanup
 
 ```bash
-scripts/delete-kind-cluster
+scripts/development/delete_kind_cluster
 ```
 
 ## References
