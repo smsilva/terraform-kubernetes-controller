@@ -21,4 +21,5 @@ create_cluster() {
   done && \
   kubectl config get-contexts
 }
+
 time create_cluster

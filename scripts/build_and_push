@@ -5,10 +5,6 @@ CONTROLLER_VERSION=$(grep "version:" cz.yaml | awk '{ print $2 }' | tr -d " ")
 CONTROLLER_IMAGE="${CONTROLLER_IMAGE_NAME?}:${CONTROLLER_VERSION?}"
 CONTROLLER_IMAGE_LATEST="${CONTROLLER_IMAGE_NAME?}:latest"
 
-# TODO: Update Helm Chart Version too
-# Update Project Version into Maven pom.xml file
-#mvn versions:set versions:commit -DnewVersion="${CONTROLLER_VERSION?}" && \
-
 sed -i "/^appVersion:/ s/appVersion.*/appVersion: ${CONTROLLER_VERSION?}/" manifests/charts/terraform-controller/Chart.yaml
 
 mvn package && \

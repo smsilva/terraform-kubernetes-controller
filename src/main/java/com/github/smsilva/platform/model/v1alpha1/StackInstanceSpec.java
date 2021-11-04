@@ -1,4 +1,4 @@
-package com.github.smsilva.platform.model.v1;
+package com.github.smsilva.platform.model.v1alpha1;
 
 import java.util.List;
 import java.util.Map;

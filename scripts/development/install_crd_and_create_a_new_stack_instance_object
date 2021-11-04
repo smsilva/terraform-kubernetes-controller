@@ -1,0 +1,13 @@
+#!/bin/bash
+clear
+
+kubectl apply -f \
+  manifests/charts/terraform-controller/crds
+
+sleep 3
+
+kubectl delete StackInstances --all &> /dev/null
+
+kubectl delete Events         --all &> /dev/null
+
+helm template manifests/charts/google-bucket | kubectl apply -f -

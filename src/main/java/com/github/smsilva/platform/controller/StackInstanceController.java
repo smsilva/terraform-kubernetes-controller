@@ -2,7 +2,7 @@ package com.github.smsilva.platform.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.smsilva.platform.model.v1.*;
+import com.github.smsilva.platform.model.v1alpha1.*;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;

@@ -1,4 +1,4 @@
-package com.github.smsilva.platform.model.v1;
+package com.github.smsilva.platform.model.v1alpha1;
 
 import io.fabric8.kubernetes.api.model.Namespaced;
 import io.fabric8.kubernetes.client.CustomResource;
@@ -12,7 +12,7 @@ import java.util.Map;
 public class StackInstance extends CustomResource<StackInstanceSpec, StackInstanceStatus> implements Namespaced {
 
     public static final String GROUP = "terraform.silvios.me";
-    public static final String VERSION = "v1";
+    public static final String VERSION = "v1alpha1";
 
     @Override
     public String toString() {
