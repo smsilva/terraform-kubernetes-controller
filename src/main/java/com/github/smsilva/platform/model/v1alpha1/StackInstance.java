@@ -27,11 +27,10 @@ public class StackInstance extends CustomResource<StackInstanceSpec, StackInstan
 
     public String getImage() {
         String registry = this.getSpec().getStack().getRegistry();
-        String provider = this.getSpec().getStack().getProvider();
         String image = this.getSpec().getStack().getImage();
         String version = this.getSpec().getStack().getVersion();
 
-        return registry + "/" + provider + "-" + image + ":" + version;
+        return registry + "/" + image + ":" + version;
     }
 
     public String getProvider() {

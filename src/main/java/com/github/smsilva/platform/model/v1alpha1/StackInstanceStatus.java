@@ -2,24 +2,24 @@ package com.github.smsilva.platform.model.v1alpha1;
 
 public class StackInstanceStatus {
 
-    private String ready;
+    private String message;
 
     public StackInstanceStatus() {
-        this.ready = "false";
+        this.message = "false";
     }
 
-    public String getReady() {
-        return ready;
+    public String getMessage() {
+        return message;
     }
 
-    public void setReady(String ready) {
-        this.ready = ready;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     @Override
     public String toString() {
         return "StackInstanceStatus{" +
-                "ready=" + ready +
+                "message=" + message +
                 '}';
     }
 

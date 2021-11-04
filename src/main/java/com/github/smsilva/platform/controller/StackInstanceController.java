@@ -142,7 +142,7 @@ public class StackInstanceController {
                 .get();
 
         StackInstanceStatus stackInstanceStatus = new StackInstanceStatus();
-        stackInstanceStatus.setReady("HEALTHY");
+        stackInstanceStatus.setMessage("HEALTHY");
 
         currentStackInstance.setStatus(stackInstanceStatus);
 

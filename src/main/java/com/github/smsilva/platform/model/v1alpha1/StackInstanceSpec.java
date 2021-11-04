@@ -36,7 +36,7 @@ public class StackInstanceSpec {
     @Override
     public String toString() {
         return "StackInstanceSpec{" +
-                "stack=" + stack +
+                "stack=" + stack + "," +
                 "vars=" + vars +
                 '}';
     }

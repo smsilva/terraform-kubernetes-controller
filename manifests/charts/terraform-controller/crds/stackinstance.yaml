@@ -68,7 +68,7 @@ spec:
             status:
               type: object
               properties:
-                ready:
+                message:
                   type: string
                   default: "NOT READY"
 
@@ -101,6 +101,6 @@ spec:
           name: Age
           type: date
 
-        - jsonPath: .status.ready
+        - jsonPath: .status.message
           name: Status
           type: string

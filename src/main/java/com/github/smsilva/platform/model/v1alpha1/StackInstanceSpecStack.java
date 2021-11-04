@@ -3,6 +3,7 @@ package com.github.smsilva.platform.model.v1alpha1;
 public class StackInstanceSpecStack {
 
     private String provider;
+    private String backend;
     private String registry;
     private String image;
     private String version;
@@ -13,6 +14,14 @@ public class StackInstanceSpecStack {
 
     public void setProvider(String provider) {
         this.provider = provider;
+    }
+
+    public String getBackend() {
+        return backend;
+    }
+
+    public void setBackend(String backend) {
+        this.backend = backend;
     }
 
     public String getRegistry() {
@@ -43,6 +52,7 @@ public class StackInstanceSpecStack {
     public String toString() {
         return "StackInstanceSpecStack{" +
                 "provider='" + provider + '\'' +
+                ", backend='" + backend + '\'' +
                 ", registry='" + registry + '\'' +
                 ", image='" + image + '\'' +
                 ", version='" + version + '\'' +
