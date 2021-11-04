@@ -86,7 +86,7 @@ public class StackInstanceController {
     }
 
     private static void onDeleteHandle(StackInstance stackInstance, KubernetesClient client) {
-        reconcile(stackInstance, client, "Delete");
+        reconcile(stackInstance, client, "Exclusion");
 
         Boolean podDeleted = deletePod(client, stackInstance);
         logger.info("POD {} exclusion: {}", stackInstance.getName(), podDeleted);

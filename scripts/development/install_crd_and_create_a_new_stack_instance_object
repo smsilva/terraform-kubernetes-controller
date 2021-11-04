@@ -4,7 +4,7 @@ clear
 kubectl apply -f \
   manifests/charts/terraform-controller/crds
 
-sleep 3
+sleep 2
 
 kubectl delete StackInstances --all &> /dev/null
 
