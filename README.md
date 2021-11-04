@@ -3,14 +3,13 @@
 ## Setup
 
 ```bash
-# Create a Kind Cluster (it should take less than 2 minutes)
-scripts/create_kind_cluster
+scripts/development/create_kind_cluster
 ```
 
 ## Create Terraform Providers Secrets manually
 
 ```bash
-scripts/create_google_secret
+scripts/development/create_google_secret
 ```
 
 ## Install Stack Instance CRD and Deploy a New Stack Instance Object
@@ -19,20 +18,22 @@ scripts/create_google_secret
 
 ```bash
 helm repo add terraform-controller https://smsilva.github.io/helm/ && \
+
 helm repo update && \
+
 helm install terraform-controller terraform-controller/terraform-controller && \
+
 kubectl wait \
   deployment terraform-controller \
   --for=condition=Available \
   --timeout=360s
 
-helm list
-
 # Terminal [1]
-watch -n 3 'kubectl get si,pods'
+watch -n 3 scripts/development/show_stack_instances_information
 
 # Terminal [2]
 helm template manifests/charts/google-bucket | kubectl apply -f -
+
 kubectl logs -f -l app=terraform-controller
 ```
 
@@ -40,10 +41,10 @@ kubectl logs -f -l app=terraform-controller
 
 ```bash
 # Terminal [1]: Watch Stack Instance Information
-watch -n 3 scripts/show_stack_instances_information
+watch -n 3 scripts/development/show_stack_instances_information
 
 # Terminal [2]: Deploy the Stack Instance Again
-scripts/install-crd-and-create-a-new-stack-instance-object
+scripts/development/install_crd_and_create_a_new_stack_instance_object
 
 # Retrieve apply and output logs
 kubectl get ConfigMap generic-bucket-1 -o json | jq '.data."apply.log"'  -r
@@ -54,16 +55,6 @@ helm template manifests/charts/google-bucket | kubectl apply -f -
 
 # Check Stack Instances Created
 kubectl get StackInstances
-```
-
-## Build and Install terraform-controller
-
-```bash
-# Terminal [1]: Watch terraform-controller Deployment
-watch -n 3 scripts/show_terraform_controller_and_stack_instances_information
-
-# Terminal [2]: Build and Deploy terraform-controller
-scripts/build_and_install_terraform_controller
 ```
 
 ## Cleanup
