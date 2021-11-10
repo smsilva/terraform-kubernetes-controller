@@ -1,0 +1,6 @@
+apiVersion: v2
+name: azure-bucket
+description: Azure Bucket Stack Instance Example
+
+# This version number should be incremented each time you make changes to the chart and its templates
+version: 0.1.0

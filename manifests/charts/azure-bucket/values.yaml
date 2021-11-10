@@ -1,0 +1,3 @@
+instances:
+  - name: genericbucket1
+    location: centralus

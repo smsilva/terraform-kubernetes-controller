@@ -1,0 +1,19 @@
+{{- range $instance := .Values.instances }}
+---
+apiVersion: terraform.silvios.me/v1alpha1
+kind: StackInstance
+metadata:
+  name: {{ $instance.name }}
+spec:
+  stack:
+    registry: docker.io
+    image: silviosilva/azure-bucket
+    version: 0.1.0
+    provider: azurerm
+    backend: azurerm
+  vars:
+    name: {{ $instance.name }}
+    location: {{ $instance.location }}
+  outputs:
+    - storage_account_id
+{{- end }}

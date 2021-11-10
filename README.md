@@ -14,6 +14,7 @@ watch -n 3 scripts/development/show_stack_instances_information
 
 # Terminal [2]
 helm template manifests/charts/google-bucket | kubectl apply -f -
+helm template manifests/charts/azure-bucket | kubectl apply -f -
 ```
 
 ### From this repository

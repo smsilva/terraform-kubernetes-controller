@@ -24,6 +24,7 @@ import static java.util.Collections.singletonMap;
 public class StackInstanceController {
 
     public static final String STACK_INSTANCE_NAME = "stack-instance-name";
+    public static final String DELETE = "Delete";
     private static final Logger logger = LoggerFactory.getLogger(StackInstanceController.class);
 
     public static void main(String[] args) throws Exception {
@@ -86,7 +87,7 @@ public class StackInstanceController {
     }
 
     private static void onDeleteHandle(StackInstance stackInstance, KubernetesClient client) {
-        reconcile(stackInstance, client, "Exclusion");
+        reconcile(stackInstance, client, DELETE);
 
         Boolean podDeleted = deletePod(client, stackInstance);
         logger.info("POD {} exclusion: {}", stackInstance.getName(), podDeleted);
@@ -105,7 +106,7 @@ public class StackInstanceController {
 
             String[] commands = null;
 
-            if ("Delete".equals(reason)) {
+            if (DELETE.equals(reason)) {
                 commands = new String[]{"destroy", "-auto-approve", "-no-color"};
             } else {
                 commands = new String[]{"apply", "-auto-approve", "-no-color"};
@@ -206,7 +207,7 @@ public class StackInstanceController {
         client.pods()
             .inNamespace(pod.getMetadata().getNamespace())
             .withName(pod.getMetadata().getName())
-            .waitUntilCondition(StackInstanceController::isCompleted, 1, TimeUnit.MINUTES);
+            .waitUntilCondition(StackInstanceController::isCompleted, 5, TimeUnit.MINUTES);
     }
 
     private static void updateConfigMap(StackInstance stackInstance, KubernetesClient client, Pod createdPod) throws Exception {
