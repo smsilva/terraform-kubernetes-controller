@@ -4,16 +4,14 @@
 
 ```bash
 # Terminal [1]
-scripts/development/create_kind_cluster && \
-
+scripts/development/create_azure_secret &&
 scripts/development/create_google_secret && \
-
+kubectl apply -f manifests/charts/terraform-controller/crds/stackinstance.yaml && \
+sleep 2 && \
 watch -n 3 scripts/development/show_stack_instances_information
 
 # Terminal [2]
 helm template manifests/charts/google-bucket | kubectl apply -f -
-
-kubectl logs -f -l app=terraform-controller
 ```
 
 ### From this repository
