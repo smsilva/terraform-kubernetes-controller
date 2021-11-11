@@ -1,3 +1,9 @@
+## 0.3.2 (2021-11-11)
+
+### Refactor
+
+- **helm-chart**: Update Helm Chart for terraform-controller to use values.image.tag as latest
+
 ## 0.3.1 (2021-11-04)
 
 ### Fix
