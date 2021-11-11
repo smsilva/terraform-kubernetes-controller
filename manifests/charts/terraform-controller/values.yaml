@@ -1,2 +1,5 @@
 name: terraform-controller
-image: docker.io/silviosilva/terraform-kubernetes-controller
+
+image:
+  repository: docker.io/silviosilva/terraform-kubernetes-controller
+  tag: latest
