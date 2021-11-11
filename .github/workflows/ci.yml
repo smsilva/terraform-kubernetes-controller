@@ -36,3 +36,6 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: silviosilva/terraform-kubernetes-controller:latest
+
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}
