@@ -1,4 +1,4 @@
-name: CI
+name: continuous-integration
 
 on:
   push:
@@ -17,9 +17,9 @@ jobs:
         java-version: '11'
         distribution: 'adopt'
         cache: maven
-    
+
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn --batch-mode package --file pom.xml
       
     - name: DockerHub Logon
       uses: docker/login-action@v1 
@@ -34,7 +34,7 @@ jobs:
         context: ./
         file: ./Dockerfile
         push: true
-        tags: silviosilva/terraform-kubernetes-controller:latest
+        tags: silviosilva/terraform-kubernetes-controller:alpha
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
