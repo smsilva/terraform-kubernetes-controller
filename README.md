@@ -1,3 +1,5 @@
+[![build](https://github.com/smsilva/terraform-kubernetes-controller/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/smsilva/terraform-kubernetes-controller/actions/workflows/ci.yml)
+
 # Terraform Kubernetes Custom Controller
 
 ## Setup
