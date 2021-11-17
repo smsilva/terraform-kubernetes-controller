@@ -127,7 +127,7 @@ public class StackInstanceController {
 
             createEvent(stackInstance, client, "TerraformApplyCompleted", reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
 
-            updateConfigMap(stackInstance, client, pod);
+            saveOutputs(stackInstance, client, pod);
 
             createEvent(stackInstance, client, "PodExclusionRequested", reason, "Pod: " + pod.getMetadata().getName() + " deleted.");
 
@@ -211,7 +211,7 @@ public class StackInstanceController {
             .waitUntilCondition(StackInstanceController::isCompleted, 10, TimeUnit.MINUTES);
     }
 
-    private static void updateConfigMap(StackInstance stackInstance, KubernetesClient client, Pod createdPod) throws Exception {
+    private static void saveOutputs(StackInstance stackInstance, KubernetesClient client, Pod createdPod) throws Exception {
         String applyLog = getLog(client, createdPod, "apply");
         String outputLog = getLog(client, createdPod, "output");
 
@@ -229,15 +229,12 @@ public class StackInstanceController {
             .addToData("apply.log", applyLog);
 
         for (String key : stackInstance.getSpec().getOutputs()) {
-            JsonNode value = new ObjectMapper()
-                .readTree(outputLog)
-                .get(key)
-                .get("value");
+            JsonNode jsonNode = new ObjectMapper()
+                    .readTree(outputLog)
+                    .get(key);
 
-            JsonNode sensitive = new ObjectMapper()
-                .readTree(outputLog)
-                .get(key)
-                .get("sensitive");
+            JsonNode value = jsonNode.get("value");
+            JsonNode sensitive = jsonNode.get("sensitive");
 
             if (!sensitive.booleanValue()) {
                 configMapBuilder.addToData(key, value.textValue());
@@ -337,16 +334,16 @@ public class StackInstanceController {
             .getContainerStatuses();
 
         for (ContainerStatus containerStatus : containerStatuses) {
-            logger.info("Pod = {} :: container = {} :: state = {}",
-                    pod.getMetadata().getName(),
-                    containerStatus.getName(),
-                    getLogFrom(containerStatus));
+            logger.info("{} :: {} :: state = {}",
+                pod.getMetadata().getName(),
+                containerStatus.getName(),
+                getLogFrom(containerStatus));
 
             if (containerStatus.getState().getTerminated() != null) {
-                logger.info("Pod = {} :: container = {} :: state = Completed :: exitCode: {}",
-                        pod.getMetadata().getName(),
-                        containerStatus.getName(),
-                        containerStatus.getState().getTerminated().getExitCode());
+                logger.info("{} :: {} :: state = Completed :: exitCode: {}",
+                    pod.getMetadata().getName(),
+                    containerStatus.getName(),
+                    containerStatus.getState().getTerminated().getExitCode());
 
                 if (containerStatus.getState().getTerminated().getReason().equals("Completed")) {
                     return true;
