@@ -1,3 +1,9 @@
+## 0.4.2 (2021-11-16)
+
+### Fix
+
+- **delete**: not save outputs when deleting a stack instance
+
 ## 0.4.1 (2021-11-16)
 
 ### Refactor
