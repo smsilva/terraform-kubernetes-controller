@@ -1,3 +1,9 @@
+## 0.4.3 (2021-11-17)
+
+### Fix
+
+- **charts**: helm chart updated with the latest version[
+
 ## 0.4.2 (2021-11-16)
 
 ### Fix
