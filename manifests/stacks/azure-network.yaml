@@ -1,0 +1,18 @@
+apiVersion: terraform.silvios.me/v1alpha1
+kind: StackInstance
+metadata:
+  name: wasp-vnet-private
+  namespace: default
+spec:
+  stack:
+    provider: azurerm
+    backend: azurerm
+    registry: docker.io
+    image: silviosilva/azure-network
+    version: 3.0.2
+  vars:
+    resource_group_name: wasp
+    name: wasp-vnet-private
+  outputs:
+    - id
+    - instance

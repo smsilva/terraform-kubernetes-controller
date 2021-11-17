@@ -2,7 +2,9 @@ package com.github.smsilva.platform.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.smsilva.platform.model.v1alpha1.*;
+import com.github.smsilva.platform.model.v1alpha1.StackInstance;
+import com.github.smsilva.platform.model.v1alpha1.StackInstanceList;
+import com.github.smsilva.platform.model.v1alpha1.StackInstanceStatus;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -16,7 +18,10 @@ import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -94,6 +99,9 @@ public class StackInstanceController {
 
         Boolean configMapDeleted = deleteConfigMap(client, stackInstance);
         logger.info("ConfigMap {} exclusion: {}", stackInstance.getName(), configMapDeleted);
+
+        Boolean secretDeleted = deleteConfigMap(client, stackInstance);
+        logger.info("Secret {} exclusion: {}", stackInstance.getName(), secretDeleted);
     }
 
     private static void reconcile(StackInstance stackInstance, KubernetesClient client, String reason) {
@@ -132,6 +140,7 @@ public class StackInstanceController {
             createEvent(stackInstance, client, "Update", reason, "Status Updated.");
         } catch (Exception e) {
             logger.error(e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -202,40 +211,60 @@ public class StackInstanceController {
     }
 
     private static void waitForCompleteCondition(KubernetesClient client, Pod pod) {
-        logger.info("Waiting for POD Status becomes Completed: {}", pod.getFullResourceName());
-
         client.pods()
             .inNamespace(pod.getMetadata().getNamespace())
             .withName(pod.getMetadata().getName())
-            .waitUntilCondition(StackInstanceController::isCompleted, 5, TimeUnit.MINUTES);
+            .waitUntilCondition(StackInstanceController::isCompleted, 10, TimeUnit.MINUTES);
     }
 
     private static void updateConfigMap(StackInstance stackInstance, KubernetesClient client, Pod createdPod) throws Exception {
         String applyLog = getLog(client, createdPod, "apply");
         String outputLog = getLog(client, createdPod, "output");
 
+        Base64.Encoder b64enc = Base64.getEncoder();
+
+        SecretBuilder secretBuilder = new SecretBuilder()
+                .withNewMetadata()
+                    .withName(stackInstance.getName())
+                .endMetadata();
+
         ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
             .withNewMetadata()
                 .withName(stackInstance.getName())
             .endMetadata()
-            .addToData("apply.log", applyLog)
-            .addToData("output.log", outputLog);
+            .addToData("apply.log", applyLog);
 
         for (String key : stackInstance.getSpec().getOutputs()) {
             JsonNode value = new ObjectMapper()
-                    .readTree(outputLog)
-                    .get(key)
-                    .get("value");
+                .readTree(outputLog)
+                .get(key)
+                .get("value");
 
-            configMapBuilder.addToData("output_" + key, value.textValue());
+            JsonNode sensitive = new ObjectMapper()
+                .readTree(outputLog)
+                .get(key)
+                .get("sensitive");
 
-            logger.info("output :: {}={}", key, value);
+            if (!sensitive.booleanValue()) {
+                configMapBuilder.addToData(key, value.textValue());
+            }
+
+            if (value.textValue() != null) {
+                secretBuilder.addToData(key, b64enc.encodeToString(value.textValue().getBytes()));
+            } else {
+                secretBuilder.addToData(key, null);
+            }
         }
 
         client.configMaps()
             .inNamespace(stackInstance.getNamespace())
             .withName(stackInstance.getName())
             .createOrReplace(configMapBuilder.build());
+
+        client.secrets()
+            .inNamespace(stackInstance.getNamespace())
+            .withName(stackInstance.getName())
+            .createOrReplace(secretBuilder.build());
     }
 
     private static EnvFromSource getEnvFromSource(StackInstance stackInstance) {
@@ -303,8 +332,6 @@ public class StackInstanceController {
             .events()
             .createOrReplace(event);
 
-        logger.info("Event {} created", createdEvent.getMetadata().getName());
-
         TimeUnit.SECONDS.sleep(1);
 
         return createdEvent;
@@ -355,28 +382,24 @@ public class StackInstanceController {
 
     private static ConfigMap createOrReplace(StackInstance stackInstance, KubernetesClient client) {
         Resource<ConfigMap> configMapResource = client
-                .configMaps()
-                .inNamespace(stackInstance.getMetadata().getNamespace())
-                .withName(stackInstance.getMetadata().getName());
+            .configMaps()
+            .inNamespace(stackInstance.getMetadata().getNamespace())
+            .withName(stackInstance.getMetadata().getName());
 
         ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
-                .withNewMetadata()
-                .withName(stackInstance.getName())
-                .endMetadata();
+            .withNewMetadata()
+            .withName(stackInstance.getName())
+            .endMetadata();
 
         for (Map.Entry<String, String> variable : stackInstance.getVariablesAsEntrySet()) {
             configMapBuilder.addToData("TF_VAR_" + variable.getKey(), variable.getValue());
         }
 
-        configMapBuilder.
-            addToData("STACK_INSTANCE_NAME", stackInstance.getName()).
-            addToData("DEBUG", "0");
+        configMapBuilder
+            .addToData("STACK_INSTANCE_NAME", stackInstance.getName())
+            .addToData("DEBUG", "2");
 
-        ConfigMap configMap = configMapResource.createOrReplace(configMapBuilder.build());
-
-        logger.info("Upserted ConfigMap at {} data {}", configMap.getMetadata().getSelfLink(), configMap.getData());
-
-        return configMap;
+        return configMapResource.createOrReplace(configMapBuilder.build());
     }
 
     private static boolean theyAreDifferent(StackInstance oldResource, StackInstance newResource) {
@@ -386,6 +409,14 @@ public class StackInstanceController {
     private static Boolean deleteConfigMap(KubernetesClient client, StackInstance stackInstance) {
         return client
                 .configMaps()
+                .inNamespace(stackInstance.getNamespace())
+                .withName(stackInstance.getName())
+                .delete();
+    }
+
+    private static Boolean deleteSecret(KubernetesClient client, StackInstance stackInstance) {
+        return client
+                .secrets()
                 .inNamespace(stackInstance.getNamespace())
                 .withName(stackInstance.getName())
                 .delete();

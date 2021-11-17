@@ -1,4 +1,6 @@
 #!/bin/bash
+INSTANCE_NAME="${1}"
+
 show_line() {
   MESSAGE=${1}
   OUTPUT=${2}
@@ -9,9 +11,10 @@ show_line() {
   echo ""
 }
 
-show_line "StackInstance Resources"   "kubectl get StackInstance"
-show_line "StackInstance POD"         "kubectl get Pod --show-labels"
-show_line "StackInstances Events"     "kubectl describe StackInstances | grep 'Events:' -A 20"
-#show_line "Container APPLY  logs"     "kubectl logs -l stack-instance-name=generic-bucket-1 -c apply  --tail 10"
-#show_line "Container OUTPUT logs"     "kubectl logs -l stack-instance-name=generic-bucket-1 -c output --tail 10"
-#show_line "StackInstance ConfigMap"   "kubectl get ConfigMap"
+show_line "${INSTANCE_NAME}"       "kubectl get StackInstance ${INSTANCE_NAME}"
+show_line "StackInstance POD"      "kubectl get Pod --show-labels --selector stack-instance-name=${INSTANCE_NAME}"
+#show_line "StackInstances Events"  "kubectl describe StackInstance ${INSTANCE_NAME} | grep 'Events:' -A 20"
+#show_line "Container APPLY logs"   "kubectl logs --selector stack-instance-name=${INSTANCE_NAME} -c apply  --tail 10"
+#show_line "Container OUTPUT logs"  "kubectl logs --selector stack-instance-name=${INSTANCE_NAME} -c output --tail 10"
+show_line "ConfigMap"              "kubectl get ConfigMap ${INSTANCE_NAME}"
+show_line "Secret"                 "kubectl get Secret    ${INSTANCE_NAME}"
