@@ -1,3 +1,9 @@
+## 0.4.0 (2021-11-16)
+
+### Feat
+
+- **secrets**: create secret for sensitive output
+
 ## 0.3.2 (2021-11-11)
 
 ### Refactor
