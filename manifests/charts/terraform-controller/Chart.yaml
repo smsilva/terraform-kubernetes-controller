@@ -12,4 +12,4 @@ version: 0.1.3
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # WARNING: This version is automatically updated when the scripts/build_and_push runs.
-appVersion: 0.4.3
+appVersion: 0.4.4

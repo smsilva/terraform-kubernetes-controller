@@ -1,3 +1,9 @@
+## 0.4.4 (2021-11-17)
+
+### Fix
+
+- **secret**: remove secret after stack instance is deleted
+
 ## 0.4.3 (2021-11-17)
 
 ### Fix
