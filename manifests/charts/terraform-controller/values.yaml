@@ -2,4 +2,3 @@ name: terraform-controller
 
 image:
   repository: docker.io/silviosilva/terraform-kubernetes-controller
-  tag: 0.4.3
