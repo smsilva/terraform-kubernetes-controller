@@ -127,7 +127,9 @@ public class StackInstanceController {
 
             createEvent(stackInstance, client, "TerraformApplyCompleted", reason, "Pod: " + pod.getMetadata().getName() + " has completed execution.");
 
-            saveOutputs(stackInstance, client, pod);
+            if (!DELETE.equals(reason)) {
+                saveOutputs(stackInstance, client, pod);
+            }
 
             createEvent(stackInstance, client, "PodExclusionRequested", reason, "Pod: " + pod.getMetadata().getName() + " deleted.");
 
@@ -218,9 +220,9 @@ public class StackInstanceController {
         Base64.Encoder b64enc = Base64.getEncoder();
 
         SecretBuilder secretBuilder = new SecretBuilder()
-                .withNewMetadata()
-                    .withName(stackInstance.getName())
-                .endMetadata();
+            .withNewMetadata()
+                .withName(stackInstance.getName())
+            .endMetadata();
 
         ConfigMapBuilder configMapBuilder = new ConfigMapBuilder()
             .withNewMetadata()
@@ -230,8 +232,8 @@ public class StackInstanceController {
 
         for (String key : stackInstance.getSpec().getOutputs()) {
             JsonNode jsonNode = new ObjectMapper()
-                    .readTree(outputLog)
-                    .get(key);
+                .readTree(outputLog)
+                .get(key);
 
             JsonNode value = jsonNode.get("value");
             JsonNode sensitive = jsonNode.get("sensitive");
@@ -399,25 +401,25 @@ public class StackInstanceController {
 
     private static Boolean deleteConfigMap(KubernetesClient client, StackInstance stackInstance) {
         return client
-                .configMaps()
-                .inNamespace(stackInstance.getNamespace())
-                .withName(stackInstance.getName())
-                .delete();
+            .configMaps()
+            .inNamespace(stackInstance.getNamespace())
+            .withName(stackInstance.getName())
+            .delete();
     }
 
     private static Boolean deleteSecret(KubernetesClient client, StackInstance stackInstance) {
         return client
-                .secrets()
-                .inNamespace(stackInstance.getNamespace())
-                .withName(stackInstance.getName())
-                .delete();
+            .secrets()
+            .inNamespace(stackInstance.getNamespace())
+            .withName(stackInstance.getName())
+            .delete();
     }
 
     private static Boolean deletePod(KubernetesClient client, StackInstance stackInstance) {
         return client.pods()
-                .inNamespace(stackInstance.getNamespace())
-                .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
-                .delete();
+            .inNamespace(stackInstance.getNamespace())
+            .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
+            .delete();
     }
 
 }
