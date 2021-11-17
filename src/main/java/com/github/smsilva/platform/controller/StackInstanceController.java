@@ -192,18 +192,12 @@ public class StackInstanceController {
             .endSpec()
             .build();
 
-        Pod createdPod = client.pods()
-                .inNamespace(stackInstance.getNamespace())
-                .createOrReplace(pod);
-
-        logger.info("POD {} created.", createdPod.getMetadata().getName());
-
-        return createdPod;
+        return client.pods()
+            .inNamespace(stackInstance.getNamespace())
+            .createOrReplace(pod);
     }
 
     private static void delete(KubernetesClient client, Pod pod) {
-        logger.info("Request POD {} exclusion", pod.getMetadata().getName());
-
         client.pods()
             .inNamespace(pod.getMetadata().getNamespace())
             .withName(pod.getMetadata().getName())
@@ -397,7 +391,7 @@ public class StackInstanceController {
 
         configMapBuilder
             .addToData("STACK_INSTANCE_NAME", stackInstance.getName())
-            .addToData("DEBUG", "2");
+            .addToData("DEBUG", "0");
 
         return configMapResource.createOrReplace(configMapBuilder.build());
     }
