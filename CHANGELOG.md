@@ -1,3 +1,9 @@
+## 0.4.1 (2021-11-16)
+
+### Refactor
+
+- **outputs**: Refactor outputs to ConfigMap and Secret
+
 ## 0.4.0 (2021-11-16)
 
 ### Feat
