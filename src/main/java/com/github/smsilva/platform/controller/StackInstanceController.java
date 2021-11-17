@@ -100,7 +100,7 @@ public class StackInstanceController {
         Boolean configMapDeleted = deleteConfigMap(client, stackInstance);
         logger.info("ConfigMap {} exclusion: {}", stackInstance.getName(), configMapDeleted);
 
-        Boolean secretDeleted = deleteConfigMap(client, stackInstance);
+        Boolean secretDeleted = deleteSecret(client, stackInstance);
         logger.info("Secret {} exclusion: {}", stackInstance.getName(), secretDeleted);
     }
 
