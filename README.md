@@ -2,7 +2,55 @@
 
 # Terraform Kubernetes Custom Controller
 
-## Setup
+## Setup Edge Version
+
+### WARNING: This is a Proof of Concept Project not to be used in Production Environments yet
+
+```bash
+# Terminal [1]
+helm repo add --force-update terraform-controller https://smsilva.github.io/helm
+
+helm repo update
+
+helm install terraform-controller \
+  terraform-controller/terraform-controller && \
+
+kubectl wait \
+  deployment terraform-controller \
+  --for condition=Available \
+  --timeout=360s
+  
+kubectl logs \
+  --follow \
+  --selector app=terraform-controller
+```
+
+### Stack Sample
+
+```yaml
+apiVersion: terraform.silvios.me/v1alpha1
+kind: StackInstance
+metadata:
+  name: wasp-files-1
+  namespace: default
+spec:
+  stack:
+    provider: google
+    backend: gcs
+    registry: docker.io
+    image: silviosilva/google-bucket
+    version: edge
+  vars:
+    name: wasp-files-1
+    location: southamerica-east1
+  outputs:
+    - id
+    - self_link
+    - url
+    - project
+```
+
+## Development
 
 ```bash
 # Terminal [1]
