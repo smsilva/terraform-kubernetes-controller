@@ -2,3 +2,10 @@ name: terraform-controller
 
 image:
   repository: docker.io/silviosilva/terraform-kubernetes-controller
+
+secrets:
+  azurerm:
+    namespace: default
+    data:
+      clientId: empty
+      clientSecret: empty
