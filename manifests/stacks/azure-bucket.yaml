@@ -9,7 +9,7 @@ spec:
     backend: azurerm
     registry: docker.io
     image: silviosilva/azure-bucket
-    version: 0.1.2
+    version: 0.1.5
   vars:
     resource_group_name: wasp
     name: waspfiles
