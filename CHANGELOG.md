@@ -1,3 +1,9 @@
+## 0.5.1 (2022-02-01)
+
+### Fix
+
+- **pom.xml**: rollback client version
+
 ## 0.5.0 (2022-02-01)
 
 ### Feat
