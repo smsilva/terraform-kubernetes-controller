@@ -13,15 +13,13 @@ import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
+import io.fabric8.zjsonpatch.internal.guava.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -172,6 +170,11 @@ public class StackInstanceController {
 
         EnvFromSource[] envFromSources = {getEnvFromSource(stackInstance), getEnvFromSource(configMap)};
 
+        List<LocalObjectReference> imagePullSecrets = new ArrayList<>();
+        LocalObjectReference localObjectReference = new LocalObjectReference();
+        localObjectReference.setName("acr-auth");
+        imagePullSecrets.add(localObjectReference);
+
         Pod pod = new PodBuilder()
             .withNewMetadata()
                 .withGenerateName(stackInstance.getName())
@@ -179,6 +182,7 @@ public class StackInstanceController {
                 .withLabels(singletonMap(STACK_INSTANCE_NAME, stackInstance.getName()))
             .endMetadata()
             .withNewSpec()
+                .withImagePullSecrets(imagePullSecrets)
                 .withRestartPolicy("OnFailure")
                 .addNewInitContainer()
                     .withName("apply")
