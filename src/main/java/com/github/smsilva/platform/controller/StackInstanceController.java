@@ -148,6 +148,7 @@ public class StackInstanceController {
 
     private static StackInstance updateStackInstanceStatusAsReady(StackInstance stackInstance, KubernetesClient client) {
         MixedOperation<StackInstance, StackInstanceList, Resource<StackInstance>> resources = client.resources(StackInstance.class, StackInstanceList.class);
+
         StackInstance currentStackInstance = resources
                 .inNamespace(stackInstance.getNamespace())
                 .withName(stackInstance.getName())
