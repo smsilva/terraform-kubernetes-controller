@@ -1,3 +1,9 @@
+## 0.5.0 (2022-02-01)
+
+### Feat
+
+- **pom.xml**: update dependencies
+
 ## 0.4.4 (2021-11-17)
 
 ### Fix
