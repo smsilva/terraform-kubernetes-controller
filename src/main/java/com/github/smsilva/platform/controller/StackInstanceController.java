@@ -110,15 +110,21 @@ public class StackInstanceController {
             ConfigMap configMap = createOrReplace(stackInstance, client);
             createEvent(stackInstance, client, "ConfigMapCreation", reason, "ConfigMap created: " + configMap.getMetadata().getName());
 
-            String[] commands = null;
+            List<String> commands = new ArrayList<>();
 
             if (DELETE.equals(reason)) {
-                commands = new String[]{"destroy", "-auto-approve", "-no-color"};
+                commands.add("destroy");
             } else {
-                commands = new String[]{"apply", "-auto-approve", "-no-color"};
+                commands.add("apply");
+            }
+            commands.add("-auto-approve");
+            commands.add("-no-color");
+
+            if (stackInstance.getVariablesAsEntrySet().iterator().hasNext()) {
+                commands.add("-var-file=/opt/variables/stacks.auto.terraform.tfvars");
             }
 
-            Pod pod = createOrReplace(stackInstance, client, configMap, commands);
+            Pod pod = createOrReplace(stackInstance, client, configMap, commands.toArray(new String[0]));
             createEvent(stackInstance, client, "TerraformApplyStarted", reason, "Pod: " + pod.getMetadata().getName() + " created. Waiting for completion.");
 
             waitForCompleteCondition(client, pod);
@@ -175,6 +181,24 @@ public class StackInstanceController {
         localObjectReference.setName("acr-auth");
         imagePullSecrets.add(localObjectReference);
 
+        ConfigMapVolumeSourceBuilder configMapVolumeSourceBuilder = new ConfigMapVolumeSourceBuilder();
+        ConfigMapVolumeSource configMapVolumeSource = configMapVolumeSourceBuilder
+                .withName(configMap.getMetadata().getName())
+                .build();
+
+        VolumeBuilder volumeBuilder = new VolumeBuilder();
+        Volume variablesColume = volumeBuilder
+                .withName("variables")
+                .withConfigMap(configMapVolumeSource)
+                .build();
+
+        VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder();
+        VolumeMount variablesVolumeMount = volumeMountBuilder
+                .withName("variables")
+                .withMountPath("/opt/variables")
+                .withReadOnly(true)
+                .build();
+
         Pod pod = new PodBuilder()
             .withNewMetadata()
                 .withGenerateName(stackInstance.getName())
@@ -189,13 +213,16 @@ public class StackInstanceController {
                     .withImage(stackInstance.getImage())
                     .withArgs(commands)
                     .withEnvFrom(envFromSources)
+                    .withVolumeMounts(variablesVolumeMount)
                 .endInitContainer()
                 .addNewContainer()
                     .withName("output")
                     .withImage(stackInstance.getImage())
                     .withArgs("output", "-json")
                     .withEnvFrom(getEnvFromSource(stackInstance), getEnvFromSource(configMap))
+                    .withVolumeMounts(variablesVolumeMount)
                 .endContainer()
+                .withVolumes(variablesColume)
             .endSpec()
             .build();
 
@@ -390,7 +417,7 @@ public class StackInstanceController {
             .endMetadata();
 
         for (Map.Entry<String, String> variable : stackInstance.getVariablesAsEntrySet()) {
-            configMapBuilder.addToData("TF_VAR_" + variable.getKey(), variable.getValue());
+            configMapBuilder.addToData(variable.getKey(), variable.getValue());
         }
 
         configMapBuilder

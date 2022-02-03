@@ -3,7 +3,7 @@ name: terraform-controller
 description: Terraform Controller for Stack Instances Resources
 type: application
 
-version: 0.1.10
+version: 0.1.11
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
