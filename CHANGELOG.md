@@ -1,3 +1,9 @@
+## 0.5.3 (2022-02-03)
+
+### Fix
+
+- **controller**: create terraform tfvars using variables input
+
 ## 0.5.2 (2022-02-03)
 
 ### Fix
