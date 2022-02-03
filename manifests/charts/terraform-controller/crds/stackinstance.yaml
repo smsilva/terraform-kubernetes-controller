@@ -32,12 +32,12 @@ spec:
                       default: azurerm
                       description: "Terraform Provider. Example: google"
                       enum:
-                        - atlas
                         - aws
                         - azurerm
                         - cloudamqp
                         - google
                         - imperva
+                        - mongodbatlas
                     backend:
                       type: string
                       default: azurerm
