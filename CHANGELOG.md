@@ -1,3 +1,9 @@
+## 0.5.2 (2022-02-03)
+
+### Fix
+
+- **crds**: update stackinstance crd
+
 ## 0.5.1 (2022-02-01)
 
 ### Fix
