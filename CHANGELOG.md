@@ -1,3 +1,9 @@
+## 0.6.0 (2022-02-04)
+
+### Feat
+
+- **controller**: accept variables as they are
+
 ## 0.5.3 (2022-02-03)
 
 ### Fix
