@@ -1,13 +1,15 @@
 package com.github.smsilva.platform.model.v1alpha1;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class StackInstanceSpec {
 
     private StackInstanceSpecStack stack;
-    private Map<String, String> vars;
-    private List<String> outputs;
+    private Map<String, Object> vars = new HashMap<>();
+    private List<String> outputs = new ArrayList<>();
 
     public StackInstanceSpecStack getStack() {
         return stack;
@@ -17,11 +19,11 @@ public class StackInstanceSpec {
         this.stack = stack;
     }
 
-    public Map<String, String> getVars() {
+    public Map<String, Object> getVars() {
         return vars;
     }
 
-    public void setVars(Map<String, String> vars) {
+    public void setVars(Map<String, Object> vars) {
         this.vars = vars;
     }
 

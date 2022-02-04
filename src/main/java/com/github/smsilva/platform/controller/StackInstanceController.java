@@ -13,13 +13,16 @@ import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
-import io.fabric8.zjsonpatch.internal.guava.Lists;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -120,8 +123,8 @@ public class StackInstanceController {
             commands.add("-auto-approve");
             commands.add("-no-color");
 
-            if (stackInstance.getVariablesAsEntrySet().iterator().hasNext()) {
-                commands.add("-var-file=/opt/variables/stacks.auto.terraform.tfvars");
+            if (!stackInstance.getVariables().isEmpty()) {
+                commands.add("-var-file=/opt/variables/terraform.tfvars.json");
             }
 
             Pod pod = createOrReplace(stackInstance, client, configMap, commands.toArray(new String[0]));
@@ -416,13 +419,10 @@ public class StackInstanceController {
             .withName(stackInstance.getName())
             .endMetadata();
 
-        for (Map.Entry<String, String> variable : stackInstance.getVariablesAsEntrySet()) {
-            configMapBuilder.addToData(variable.getKey(), variable.getValue());
-        }
-
         configMapBuilder
             .addToData("STACK_INSTANCE_NAME", stackInstance.getName())
-            .addToData("DEBUG", "0");
+            .addToData("DEBUG", "0")
+            .addToData("terraform.tfvars.json", Serialization.asJson(stackInstance.getVariables()));
 
         return configMapResource.createOrReplace(configMapBuilder.build());
     }
