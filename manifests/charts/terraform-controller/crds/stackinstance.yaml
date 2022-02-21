@@ -92,14 +92,6 @@ spec:
           name: Version
           type: string
 
-        - jsonPath: .spec.vars
-          name: Variables
-          type: string
-
-        - jsonPath: .spec.outputs
-          name: Outputs
-          type: string
-
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date

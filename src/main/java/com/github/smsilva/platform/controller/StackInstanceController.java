@@ -249,6 +249,8 @@ public class StackInstanceController {
     }
 
     private static void saveOutputs(StackInstance stackInstance, KubernetesClient client, Pod createdPod) throws Exception {
+        logger.info("saveOutputs :: start");
+
         String applyLog = getLog(client, createdPod, "apply");
         String outputLog = getLog(client, createdPod, "output");
 
@@ -270,17 +272,23 @@ public class StackInstanceController {
                 .readTree(outputLog)
                 .get(key);
 
-            JsonNode value = jsonNode.get("value");
-            JsonNode sensitive = jsonNode.get("sensitive");
+            if (jsonNode != null) {
+                JsonNode value = jsonNode.get("value");
+                JsonNode sensitive = jsonNode.get("sensitive");
 
-            if (!sensitive.booleanValue()) {
-                configMapBuilder.addToData(key, value.textValue());
-            }
+                if (!sensitive.booleanValue()) {
+                    logger.info("saveOutputs :: configmap :: {}={}", key, value.asText());
+                    configMapBuilder.addToData(key, value.asText());
+                }
 
-            if (value.textValue() != null) {
-                secretBuilder.addToData(key, b64enc.encodeToString(value.textValue().getBytes()));
+                if (value.asText() != null) {
+                    logger.info("saveOutputs :: secret :: {}={}", key, value.asText());
+                    secretBuilder.addToData(key, b64enc.encodeToString(value.asText().getBytes()));
+                } else {
+                    secretBuilder.addToData(key, null);
+                }
             } else {
-                secretBuilder.addToData(key, null);
+                logger.info("saveOutputs :: key={} not found", key);
             }
         }
 
