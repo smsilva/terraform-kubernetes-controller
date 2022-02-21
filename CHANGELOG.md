@@ -1,3 +1,9 @@
+## 0.6.1 (2022-02-21)
+
+### Fix
+
+- **outputs**: deal with outputs as strings
+
 ## 0.6.0 (2022-02-04)
 
 ### Feat
